@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Place des Tendances | Smart Slider V36</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pdt: {
+                            blue: '#192a3e',
+                            placid: '#8ca3b8',
+                            merlot: '#722f37',
+                            anthracite: '#2e2e2e',
+                            sand: '#f5f5f0',
+                            light: '#ffffff'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Montserrat', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f5f5f0; color: #2e2e2e; user-select: none; }
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .hidden-force { display: none !important; }
+        
+        /* Input Styles */
+        .input-manual { background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 4px; font-size: 11px; width: 60px; text-align: right; font-family: monospace; color: #334155; transition: all 0.2s; }
+        .input-manual:focus { outline: none; border-color: #192a3e; box-shadow: 0 0 0 1px rgba(25,42,62,0.1); }
+        .input-budget { border-left: 3px solid #192a3e; font-weight: bold; width: 75px; }
+        
+        /* Select Styles */
+        .select-manual { background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px; font-size: 10px; max-width: 110px; cursor: pointer; color: #334155; }
+        
+        /* Table Layout */
+        .group-header { background-color: #e2e8f0; color: #475569; font-weight: 800; font-size: 11px; letter-spacing: 1px; padding: 10px 16px; text-transform: uppercase; border-top: 1px solid #94a3b8; }
+        .badge-funnel { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; display: inline-block; min-width: 80px; text-align: center; color: white; text-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        
+        /* Icons */
+        .btn-icon { color: #94a3b8; cursor: pointer; transition: color 0.2s; padding: 4px; }
+        .btn-icon:hover { color: #192a3e; }
+        .btn-icon.delete:hover { color: #ef4444; }
+        
+        /* Read Only Cells */
+        .calc-cell { font-family: monospace; font-size: 11px; color: #64748b; text-align: right; padding-right: 8px; }
+        
+        /* Checkbox */
+        .custom-checkbox input:checked + div { background-color: currentColor; border-color: currentColor; } 
+        .custom-checkbox input:checked + div:after { content: ''; position: absolute; width: 4px; height: 8px; border: solid white; border-width: 0 2px 2px 0; top: 1px; left: 4px; transform: rotate(45deg); }
+        .row-disabled { opacity: 0.5; background-color: #f8fafc; }
+        .row-disabled input, .row-disabled select { pointer-events: none; background-color: #f1f5f9; color: #9ca3af; }
+
+        /* Gantt */
+        .gantt-wrapper { border: 1px solid #e2e8f0; border-radius: 8px; background: white; overflow: hidden; }
+        .gantt-scroll-area { overflow-x: auto; overflow-y: hidden; width: 100%; position: relative; }
+        .gantt-content { display: flex; flex-direction: column; min-width: 100%; width: max-content; }
+        .gantt-header { display: flex; border-bottom: 1px solid #e2e8f0; background: #f8fafc; height: 32px; }
+        .gantt-month { width: 160px; min-width: 160px; text-align: center; padding: 8px; font-weight: 700; font-size: 11px; text-transform: uppercase; color: #64748b; border-right: 1px solid #e2e8f0; flex-shrink: 0; }
+        .gantt-body { position: relative; min-height: 200px; }
+        .gantt-grid-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; pointer-events: none; z-index: 0; }
+        .gantt-col { width: 40px; min-width: 40px; border-right: 1px dashed #f1f5f9; height: 100%; flex-shrink: 0; }
+        .gantt-row { position: relative; height: 36px; border-bottom: 1px solid #f1f5f9; display: flex; items-center; z-index: 10; }
+        .gantt-label-col { position: sticky; left: 0; z-index: 20; background: white; width: 240px; min-width: 240px; border-right: 2px solid #e2e8f0; box-shadow: 2px 0 5px rgba(0,0,0,0.05); display: flex; align-items: center; padding-left: 16px; font-size: 11px; font-weight: 600; color: #334155; }
+        .gantt-track { flex-grow: 1; position: relative; height: 100%; }
+        .gantt-bar { position: absolute; top: 6px; height: 24px; border-radius: 4px; color: white; font-size: 10px; display: flex; items-center; justify-content: center; cursor: grab; box-shadow: 0 2px 4px rgba(0,0,0,0.15); font-weight: 600; letter-spacing: 0.5px; transition: box-shadow 0.2s; white-space: nowrap; padding: 0 8px; overflow: hidden; }
+        .gantt-bar:active { cursor: grabbing; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 50; }
+        .gantt-handle { position: absolute; top: 0; bottom: 0; right: 0; width: 10px; cursor: col-resize; background: rgba(255,255,255,0.3); border-radius: 0 4px 4px 0; }
+        .gantt-handle:hover { background: rgba(255,255,255,0.6); }
+        .action-card { transition: all 0.3s ease; border-left: 4px solid transparent; }
+        .action-card:hover { transform: translateX(5px); border-left-color: #722f37; }
+        
+        /* Platform Dot */
+        .plat-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; border: 1px solid rgba(0,0,0,0.1); }
+        .funnel-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 4px; }
+        .funnel-legend-item { display: flex; align-items: center; font-size: 9px; font-weight: 600; color: #64748b; margin-right: 8px; margin-bottom: 4px; }
+    </style>
+</head>
+<body class="font-sans antialiased text-xs md:text-sm pb-32">
+
+    <!-- Header -->
+    <header class="bg-pdt-blue text-white py-5 px-6 shadow-lg sticky top-0 z-50">
+        <div class="max-w-[1800px] mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="font-serif text-xl md:text-2xl tracking-widest font-bold">MÉDIA PLANNING DYNAMIQUE</h1>
+                <p class="text-[10px] md:text-xs text-gray-300 tracking-wider">SMART TRADER V36 (BUDGET SLIDER)</p>
+            </div>
+            <div class="flex gap-4 items-center">
+                <button onclick="resetData()" class="bg-pdt-merlot hover:bg-red-800 text-white px-3 py-1 rounded text-[10px] font-bold uppercase transition-colors">
+                    <i class="fas fa-undo mr-1"></i> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1800px] mx-auto px-4 py-6 space-y-8">
+
+        <!-- GLOBAL KPI DASHBOARD -->
+        <section class="bg-white rounded-xl card-shadow p-6 border-l-4 border-pdt-merlot">
+            
+            <!-- TOP ROW: BUDGET SLIDER & MAIN KPIs -->
+            <div class="flex flex-col md:flex-row gap-8 items-center border-b border-gray-100 pb-6 mb-6">
+                <!-- BUDGET SLIDER -->
+                <div class="w-full md:w-1/3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div class="flex justify-between items-end mb-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase flex items-center gap-2">
+                            <i class="fas fa-coins text-pdt-merlot"></i> Budget Campagne
+                        </label>
+                        <span class="text-2xl font-bold text-pdt-blue" id="sliderValDisplay">50 000 €</span>
+                    </div>
+                    <input type="range" id="globalBudgetSlider" min="0" max="100000" step="1000" value="50000" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-pdt-merlot">
+                    <div class="flex justify-between text-[9px] text-gray-400 mt-1">
+                        <span>0 €</span>
+                        <span>50 k€</span>
+                        <span>100 k€</span>
+                    </div>
+                </div>
+
+                <!-- FINANCIALS -->
+                <div class="w-full md:w-2/3 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                     <div class="px-2">
+                        <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">CA Projeté</div>
+                        <div id="headRevenue" class="text-3xl font-bold text-green-700">0 €</div>
+                    </div>
+                    <div class="px-2 bg-pdt-blue/5 rounded py-2 border border-pdt-blue/10">
+                        <div class="text-[10px] text-pdt-blue uppercase font-bold mb-1">ROI Global</div>
+                        <div id="headROI" class="text-3xl font-bold text-pdt-blue">0.00x</div>
+                    </div>
+                    <div class="px-2">
+                        <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Panier Moyen</div>
+                        <div id="headAOV" class="text-xl font-bold text-gray-600">0 €</div>
+                    </div>
+                     <div class="px-2">
+                        <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Leviers Actifs</div>
+                        <div id="headActive" class="text-xl font-bold text-pdt-merlot">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTOM ROW: VOLUME METRICS -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center items-center">
+                <div class="px-2 border-r border-gray-100">
+                    <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Impressions</div>
+                    <div id="headImps" class="text-xl font-bold text-gray-600">0</div>
+                </div>
+                <div class="px-2 border-r border-gray-100">
+                    <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Trafic</div>
+                    <div id="headTraffic" class="text-xl font-bold text-pdt-placid">0</div>
+                </div>
+                <div class="px-2">
+                    <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Ventes</div>
+                    <div id="headSales" class="text-xl font-bold text-gray-600">0</div>
+                </div>
+                <div class="px-2">
+                    <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Budget Réel (Somme)</div>
+                    <div id="headBudgetSum" class="text-xl font-bold text-gray-800">0 €</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MAIN TABLE -->
+        <section class="bg-white rounded-xl card-shadow overflow-hidden border border-gray-200">
+            <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                <div>
+                    <h3 class="font-serif font-bold text-pdt-blue pl-2"><i class="fas fa-edit mr-2"></i>Construction Budgétaire</h3>
+                    <div class="flex flex-wrap gap-2 mt-2 ml-2">
+                        <div class="funnel-legend-item"><div class="funnel-dot bg-[#F472B6]"></div>Soc. TOFU</div>
+                        <div class="funnel-legend-item"><div class="funnel-dot bg-[#C026D3]"></div>Soc. MOFU</div>
+                        <div class="funnel-legend-item"><div class="funnel-dot bg-[#7C3AED]"></div>Soc. BOFU</div>
+                        <div class="h-3 w-px bg-gray-300 mx-1"></div>
+                        <div class="funnel-legend-item"><div class="funnel-dot bg-[#38BDF8]"></div>Ggl. Aware</div>
+                        <div class="funnel-legend-item"><div class="funnel-dot bg-[#2563EB]"></div>Ggl. Consid</div>
+                        <div class="funnel-legend-item"><div class="funnel-dot bg-[#059669]"></div>Ggl. Conv</div>
+                        <div class="h-3 w-px bg-gray-300 mx-1"></div>
+                        <div class="funnel-legend-item"><div class="funnel-dot bg-[#1E293B]"></div>TV</div>
+                        <div class="funnel-legend-item"><div class="funnel-dot bg-[#64748B]"></div>Radio</div>
+                        <div class="funnel-legend-item"><div class="funnel-dot bg-[#F97316]"></div>Influ</div>
+                        <div class="funnel-legend-item"><div class="funnel-dot bg-[#991B1B]"></div>CRM</div>
+                    </div>
+                </div>
+                
+                <div class="flex flex-wrap items-center bg-gray-50 p-2 rounded-lg border border-gray-200 gap-3 text-[9px] uppercase font-bold text-gray-500">
+                    <div class="flex items-center gap-1"><span class="plat-dot bg-[#1877F2]"></span>Meta</div>
+                    <div class="flex items-center gap-1"><span class="plat-dot bg-[#000000]"></span>TikTok</div>
+                    <div class="flex items-center gap-1"><span class="plat-dot bg-[#E60023]"></span>Pint.</div>
+                    <div class="flex items-center gap-1"><span class="plat-dot bg-[#34A853]"></span>Google</div>
+                    <div class="flex items-center gap-1"><span class="plat-dot bg-[#FF0000]"></span>YT</div>
+                    <div class="flex items-center gap-1"><span class="plat-dot bg-[#4C1D95]"></span>TV</div>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[1600px]">
+                    <thead class="bg-white text-gray-600 font-bold text-[10px] uppercase tracking-wider border-b-2 border-gray-300">
+                        <tr>
+                            <th class="p-3 w-10 text-center border-r border-gray-200 bg-gray-50">On</th>
+                            <th class="p-3 w-40">Levier</th>
+                            <th class="p-3 w-24 text-center">Funnel</th>
+                            <th class="p-3 w-32">Plateforme</th>
+                            <th class="p-3 w-32">Format (Dyn)</th>
+                            <th class="p-3 w-24 text-center">Modèle</th>
+                            <th class="p-3 w-32 bg-blue-50/30">Stratégie Ench.</th>
+                            <th class="p-3 text-right bg-yellow-50/50 border-l border-gray-200">Budget (€)</th>
+                            <th class="p-3 text-right bg-yellow-50/50">Coût Unit.</th>
+                            <th class="p-3 text-right bg-yellow-50/50">CTR</th>
+                            <th class="p-3 text-right bg-yellow-50/50">Conv.</th>
+                            <th class="p-3 text-right bg-yellow-50/50">PM</th>
+                            <th class="p-3 text-right text-gray-400 border-l border-gray-200">Volume</th>
+                            <th class="p-3 text-right text-pdt-placid">Trafic</th>
+                            <th class="p-3 text-right text-gray-600">Ventes</th>
+                            <th class="p-3 text-right text-green-700">CA (€)</th>
+                            <th class="p-3 text-right text-pdt-blue">ROI</th>
+                            <th class="p-3 w-16 text-center border-l border-gray-200">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="text-xs divide-y divide-gray-100 font-medium"></tbody>
+                    <tfoot class="bg-gray-100 font-bold text-gray-800 border-t-2 border-gray-300">
+                        <tr>
+                            <td colspan="7" class="p-4 text-right uppercase tracking-wider text-[10px]">Totaux (Actifs)</td>
+                            <td class="p-4 text-right border-l border-gray-300" id="ftBudget">0 €</td>
+                            <td colspan="4" class="bg-gray-100"></td>
+                            <td class="p-4 text-right text-gray-400 border-l border-gray-300" id="ftVol">-</td>
+                            <td class="p-4 text-right text-pdt-placid" id="ftTraffic">0</td>
+                            <td class="p-4 text-right text-gray-600" id="ftSales">0</td>
+                            <td class="p-4 text-right text-green-700" id="ftRevenue">0 €</td>
+                            <td class="p-4 text-right text-pdt-blue" id="ftROI">0.00</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </section>
+
+        <!-- CALENDAR SECTION -->
+        <section id="timelineSection" class="space-y-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <span class="bg-pdt-blue text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg"><i class="fas fa-calendar-alt"></i></span>
+                    <h3 class="text-xl font-serif text-pdt-blue font-bold">Calendrier d'Activation</h3>
+                </div>
+                <div class="flex gap-2 bg-white p-1 rounded border border-gray-300 items-center">
+                    <button onclick="removeMonth()" class="hover:bg-gray-100 text-pdt-merlot px-3 py-1 rounded text-xs font-bold transition-colors"><i class="fas fa-minus mr-1"></i></button>
+                    <button onclick="resetTimeline()" class="hover:bg-gray-100 text-gray-600 px-3 py-1 rounded text-xs font-bold transition-colors" title="Année Complète"><i class="fas fa-sync-alt"></i></button>
+                    <button onclick="addMonth()" class="hover:bg-gray-100 text-pdt-blue px-3 py-1 rounded text-xs font-bold transition-colors"><i class="fas fa-plus mr-1"></i></button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl card-shadow p-6 border border-gray-200">
+                <div class="gantt-wrapper">
+                    <div id="ganttChart" class="gantt-scroll-area"></div>
+                </div>
+                <div class="mt-2 text-[10px] text-gray-400 italic text-right flex justify-between">
+                    <span><i class="fas fa-link mr-1"></i> La couleur des barres indique le Funnel.</span>
+                    <span id="ganttInfo">--</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- CHARTS SECTION -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white p-5 rounded-lg card-shadow">
+                <h4 class="font-bold text-pdt-blue mb-4 text-xs uppercase flex justify-between"><span>Allocation Budgétaire</span><i class="fas fa-chart-pie"></i></h4>
+                <div class="chart-container" style="height: 250px;"><canvas id="allocChart"></canvas></div>
+            </div>
+            <div class="bg-white p-5 rounded-lg card-shadow">
+                <h4 class="font-bold text-pdt-blue mb-4 text-xs uppercase flex justify-between"><span>CA Généré par Levier</span><i class="fas fa-chart-bar"></i></h4>
+                <div class="chart-container" style="height: 250px;"><canvas id="revChart"></canvas></div>
+            </div>
+        </section>
+
+        <!-- DETAILS -->
+        <section id="operationalDetail" class="space-y-6">
+            <div class="flex items-center gap-4">
+                <span class="bg-pdt-blue text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg">2</span>
+                <h3 class="text-xl font-serif text-pdt-blue font-bold">Détails des Leviers Sélectionnés</h3>
+                <div class="h-px bg-gray-300 flex-grow"></div>
+            </div>
+            <div id="cardsContainer" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- CONSTANTS & DATA ---
+        const ALL_MONTHS_LIB = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+        const FUNNEL_COLORS = { 'TOFU': '#F472B6', 'Awareness': '#38BDF8', 'Mass': '#1E293B', 'Buzz': '#EAB308', 'MOFU': '#C026D3', 'Consid.': '#2563EB', 'Prescription': '#F97316', 'BOFU': '#7C3AED', 'Conversion': '#059669', 'Loyalty': '#991B1B', 'Répétition': '#64748B' };
+        const PLATFORM_DATA = {
+            'Meta': { formats: ['Reels', 'Stories', 'Feed', 'Collection', 'DPA'], defaultCost: 4.5, bidding: ['Lowest Cost', 'Cost Cap', 'Bid Cap'], color: '#1877F2' },
+            'TikTok': { formats: ['Top View', 'In-Feed', 'Spark'], defaultCost: 2.5, bidding: ['Max Delivery', 'Cost Cap'], color: '#000000' },
+            'LinkedIn': { formats: ['Single Image', 'Carousel', 'Video', 'Message'], defaultCost: 15.0, bidding: ['Max Delivery', 'Target Cost'], color: '#0077B5' },
+            'Pinterest': { formats: ['Idea Pins', 'Carousel', 'Standard'], defaultCost: 3.0, bidding: ['Auto', 'Custom'], color: '#E60023' },
+            'Snapchat': { formats: ['Commercials', 'Story Ads', 'Snap Ad'], defaultCost: 2.0, bidding: ['Auto', 'Target Cost'], color: '#FFFC00' },
+            'Google Ads': { formats: ['Search Generic', 'Search Brand', 'P-Max', 'Shopping', 'Demand Gen', 'Display'], defaultCost: 0.85, bidding: ['Max Conv', 'tCPA', 'tROAS'], color: '#34A853' },
+            'Youtube': { formats: ['Bumper 6s', 'In-Stream', 'Shorts'], defaultCost: 6.5, bidding: ['Target CPM', 'Max Lift'], color: '#FF0000' },
+            'TV': { formats: ['Spot 20s', 'Sponsoring'], defaultCost: 5000, bidding: ['N/A'], color: '#4C1D95' },
+            'Radio': { formats: ['Spot Audio'], defaultCost: 12, bidding: ['N/A'], color: '#64748B' },
+            'Street': { formats: ['Clean Tag', 'Flyering'], defaultCost: 2000, bidding: ['N/A'], color: '#EAB308' },
+            'Influ': { formats: ['Reels Collab', 'Story Set'], defaultCost: 1500, bidding: ['N/A'], color: '#F97316' },
+            'Email': { formats: ['Newsletter', 'Trigger'], defaultCost: 300, bidding: ['N/A'], color: '#7F1D1D' }
+        };
+        const BUYING_MODELS = ['CPM', 'CPC', 'CPA', 'CPL', 'CPE', 'CPV', 'Flat'];
+        const BLUEPRINTS = {
+            social_tofu: { cat: "1. MÉDIAS DIGITAUX", name: 'Social Ads', funnel: 'TOFU', platforms: ['Meta', 'TikTok', 'LinkedIn', 'Pinterest'], defaultModel: 'CPM', defaultCTR: 0.8, defaultCR: 0.5, defaultAOV: 90, defaultWeight: 15 }, 
+            social_mofu: { cat: "1. MÉDIAS DIGITAUX", name: 'Social Ads', funnel: 'MOFU', platforms: ['Meta', 'Pinterest', 'TikTok', 'LinkedIn'], defaultModel: 'CPC', defaultCTR: 1.5, defaultCR: 1.5, defaultAOV: 130, defaultWeight: 15 }, 
+            social_bofu: { cat: "1. MÉDIAS DIGITAUX", name: 'Social Ads', funnel: 'BOFU', platforms: ['Meta', 'Pinterest', 'LinkedIn'], defaultModel: 'CPC', defaultCTR: 2.0, defaultCR: 4.5, defaultAOV: 150, defaultWeight: 10 }, 
+            google_aware: { cat: "1. MÉDIAS DIGITAUX", name: 'Google Ads', funnel: 'Awareness', platforms: ['Youtube', 'Google Ads'], defaultModel: 'CPM', defaultCTR: 0.5, defaultCR: 0.3, defaultAOV: 100, defaultWeight: 5 }, 
+            google_consid: { cat: "1. MÉDIAS DIGITAUX", name: 'Google Ads', funnel: 'Consid.', platforms: ['Google Ads'], defaultModel: 'CPC', defaultCTR: 3.0, defaultCR: 2.0, defaultAOV: 160, defaultWeight: 15 }, 
+            google_conv: { cat: "1. MÉDIAS DIGITAUX", name: 'Google Ads', funnel: 'Conversion', platforms: ['Google Ads'], defaultModel: 'CPC', defaultCTR: 4.0, defaultCR: 3.5, defaultAOV: 180, defaultWeight: 20 }, 
+            tv: { cat: "2. MÉDIAS LINÉAIRES", name: 'TV', funnel: 'Mass', platforms: ['TV'], defaultModel: 'Flat', defaultCTR: 0, defaultCR: 0.8, defaultAOV: 160, defaultWeight: 0 }, 
+            radio: { cat: "2. MÉDIAS LINÉAIRES", name: 'Radio', funnel: 'Mass', platforms: ['Radio'], defaultModel: 'CPM', defaultCTR: 0.2, defaultCR: 0.5, defaultAOV: 140, defaultWeight: 0 }, 
+            influ: { cat: "3. HORS MÉDIA", name: 'Influence', funnel: 'Prescription', platforms: ['Influ'], defaultModel: 'Flat', defaultCTR: 0, defaultCR: 1.5, defaultAOV: 125, defaultWeight: 10 }, 
+            street: { cat: "3. HORS MÉDIA", name: 'Guérilla', funnel: 'Buzz', platforms: ['Street'], defaultModel: 'Flat', defaultCTR: 0, defaultCR: 5.0, defaultAOV: 140, defaultWeight: 0 }, 
+            crm: { cat: "3. HORS MÉDIA", name: 'CRM', funnel: 'Loyalty', platforms: ['Email'], defaultModel: 'Flat', defaultCTR: 0, defaultCR: 4.0, defaultAOV: 190, defaultWeight: 10 } 
+        };
+
+        // --- STATE ---
+        let ROWS = [];
+        let CURRENT_MONTHS = [...ALL_MONTHS_LIB]; 
+        let TIMELINE_DATA = {}; 
+        let chartAlloc = null;
+        let chartRev = null;
+        let GLOBAL_SLIDER_VAL = 50000;
+
+        function safeSetText(id, val) { const el = document.getElementById(id); if(el) el.textContent = val; }
+
+        function initData() {
+            Object.keys(BLUEPRINTS).forEach(key => addLine(key, false));
+            // No default budget set here, will be distributed by slider
+            initTimelineData();
+        }
+
+        function initTimelineData() {
+            const baseStart = 8; 
+            ROWS.forEach(row => {
+                if(!TIMELINE_DATA[row.id]) {
+                    const bp = BLUEPRINTS[row.type];
+                    let offset = 0, duration = 4;
+                    if(bp.funnel === 'TOFU' || bp.funnel === 'Awareness') { offset = 0; duration = 6; }
+                    else if(bp.funnel.includes('MOFU') || bp.funnel.includes('Consid')) { offset = 2; duration = 8; }
+                    else { offset = 4; duration = 8; }
+                    TIMELINE_DATA[row.id] = { absStart: baseStart + offset, duration: duration };
+                }
+            });
+        }
+
+        function addLine(type, isDuplicate = false, sourceRow = null) {
+            const bp = BLUEPRINTS[type];
+            const uniqueId = Math.random().toString(36).substr(2, 9);
+            
+            let platform = bp.platforms[0];
+            let format = PLATFORM_DATA[platform].formats[0];
+            let cost = PLATFORM_DATA[platform].defaultCost;
+            let bidding = PLATFORM_DATA[platform].bidding ? PLATFORM_DATA[platform].bidding[0] : 'N/A';
+            let model = bp.defaultModel;
+            let ctr = bp.defaultCTR;
+            let cr = bp.defaultCR;
+            let aov = bp.defaultAOV;
+            let budget = 0;
+            let active = true;
+            let weight = bp.defaultWeight;
+
+            if(sourceRow) {
+                platform = sourceRow.platform; format = sourceRow.format; cost = sourceRow.unitCost; model = sourceRow.model;
+                ctr = sourceRow.ctr; cr = sourceRow.cr; aov = sourceRow.aov; budget = sourceRow.budget; active = sourceRow.active;
+                bidding = sourceRow.bidding; weight = sourceRow.weight;
+            }
+
+            const newRow = { id: uniqueId, type: type, platform: platform, format: format, model: model, budget: budget, unitCost: cost, ctr: ctr, cr: cr, aov: aov, active: active, bidding: bidding, weight: weight };
+
+            if(sourceRow) {
+                const idx = ROWS.findIndex(r => r.id === sourceRow.id);
+                ROWS.splice(idx + 1, 0, newRow);
+            } else {
+                ROWS.push(newRow);
+            }
+            if(!TIMELINE_DATA[uniqueId]) { TIMELINE_DATA[uniqueId] = { absStart: 8, duration: 4 }; }
+        }
+
+        function resetData() {
+            ROWS = [];
+            initData();
+            GLOBAL_SLIDER_VAL = 50000;
+            document.getElementById('globalBudgetSlider').value = 50000;
+            resetTimeline();
+            distributeBudget(); // This triggers render
+        }
+
+        // --- DISTRIBUTION LOGIC ---
+        function distributeBudget() {
+            // Distribute GLOBAL_SLIDER_VAL based on active row weights
+            let totalWeight = 0;
+            ROWS.forEach(r => { if(r.active) totalWeight += r.weight; });
+
+            ROWS.forEach(r => {
+                if(r.active && totalWeight > 0) {
+                    r.budget = Math.round(GLOBAL_SLIDER_VAL * (r.weight / totalWeight));
+                } else {
+                    r.budget = 0; // Or keep existing if we wanted mixed mode, but smart slider implies override
+                }
+            });
+
+            // Update UI
+            document.getElementById('sliderValDisplay').textContent = formatMoney(GLOBAL_SLIDER_VAL);
+            renderTable(); // Re-render inputs to show new budgets
+            recalculate(); // Recalc totals
+            renderGantt();
+        }
+
+        // --- GANTT LOGIC ---
+        function getMonthName(idx) { const normalized = ((idx % 12) + 12) % 12; return ALL_MONTHS_LIB[normalized]; }
+        function addMonth() { const lastMonthName = CURRENT_MONTHS[CURRENT_MONTHS.length - 1]; let idx = ALL_MONTHS_LIB.indexOf(lastMonthName); let nextIdx = (idx + 1) % 12; CURRENT_MONTHS.push(ALL_MONTHS_LIB[nextIdx]); renderGantt(); }
+        function removeMonth() { if(CURRENT_MONTHS.length > 1) { CURRENT_MONTHS.pop(); renderGantt(); } }
+        function resetTimeline() { CURRENT_MONTHS = [...ALL_MONTHS_LIB]; initTimelineData(); renderGantt(); }
+        function renderGantt() {
+            const container = document.getElementById('ganttChart'); if(!container) return; container.innerHTML = '';
+            const content = document.createElement('div'); content.className = 'gantt-content';
+            const weeksPerMonth = 4; const totalWeeks = CURRENT_MONTHS.length * weeksPerMonth; const weekWidth = 160 / weeksPerMonth; 
+            const header = document.createElement('div'); header.className = 'gantt-header';
+            const spacer = document.createElement('div'); spacer.className = 'gantt-label-col'; spacer.style.borderRight='1px solid #e2e8f0'; spacer.style.height='100%'; spacer.style.display='flex'; spacer.style.alignItems='center'; spacer.innerHTML = '<i class="fas fa-align-left mr-2"></i> Activations'; header.appendChild(spacer);
+            CURRENT_MONTHS.forEach(m => { const d = document.createElement('div'); d.className='gantt-month'; d.textContent = m; header.appendChild(d); });
+            content.appendChild(header);
+            const body = document.createElement('div'); body.className = 'gantt-body';
+            const bg = document.createElement('div'); bg.className='gantt-grid-bg';
+            const bgSpacer = document.createElement('div'); bgSpacer.style.cssText = `width:240px; min-width:240px; border-right:1px solid #e2e8f0; flex-shrink:0; background:white; z-index:15;`; bg.appendChild(bgSpacer);
+            for(let i=0; i<totalWeeks; i++) { const col = document.createElement('div'); col.className='gantt-col'; bg.appendChild(col); }
+            body.appendChild(bg);
+
+            ROWS.forEach(row => {
+                if(row.active) {
+                    const bp = BLUEPRINTS[row.type];
+                    const rowDiv = document.createElement('div'); rowDiv.className = 'gantt-row';
+                    const label = document.createElement('div'); label.className = 'gantt-label-col';
+                    label.innerHTML = `<div class="truncate text-[10px]"><span class="font-bold">${bp.name}</span> <span class="text-gray-400 text-[9px]">(${row.platform})</span></div>`;
+                    rowDiv.appendChild(label);
+                    const track = document.createElement('div'); track.className = 'gantt-track';
+                    const barData = TIMELINE_DATA[row.id];
+                    const barColor = FUNNEL_COLORS[bp.funnel] || '#999';
+                    const bar = document.createElement('div'); bar.className = 'gantt-bar'; bar.style.backgroundColor = barColor; bar.textContent = bp.funnel;
+                    const updatePos = () => { bar.style.left = (barData.absStart * weekWidth) + 'px'; bar.style.width = (barData.duration * weekWidth) + 'px'; };
+                    updatePos();
+                    const handle = document.createElement('div'); handle.className = 'gantt-handle'; bar.appendChild(handle);
+                    bar.onmousedown = (e) => { if(e.target===handle) return; e.preventDefault(); const startX = e.clientX; const initLeft = parseFloat(bar.style.left); const onMove = (mv) => { const delta = mv.clientX - startX; let newLeft = initLeft + delta; if(newLeft < 0) newLeft = 0; const snapWeek = Math.round(newLeft / weekWidth); bar.style.left = (snapWeek * weekWidth) + 'px'; barData.absStart = snapWeek; }; const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp); };
+                    handle.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); const startX = e.clientX; const initW = parseFloat(bar.style.width); const onMove = (mv) => { const delta = mv.clientX - startX; let newW = initW + delta; const snapW = Math.max(1, Math.round(newW / weekWidth)); bar.style.width = (snapW * weekWidth) + 'px'; barData.duration = snapW; }; const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp); };
+                    track.appendChild(bar); rowDiv.appendChild(track); body.appendChild(rowDiv);
+                }
+            });
+            content.appendChild(body); container.appendChild(content);
+            const info = document.getElementById('ganttInfo'); if(info) info.textContent = `${CURRENT_MONTHS[0]} - ${CURRENT_MONTHS[CURRENT_MONTHS.length-1]}`;
+        }
+
+        // --- RENDER TABLE ---
+        function renderTable() {
+            const tbody = document.getElementById('tableBody'); tbody.innerHTML = '';
+            const groups = {};
+            ROWS.forEach(row => { const cat = BLUEPRINTS[row.type].cat; if(!groups[cat]) groups[cat] = []; groups[cat].push(row); });
+
+            for (const [cat, lines] of Object.entries(groups)) {
+                const trHead = document.createElement('tr'); trHead.innerHTML = `<td colspan="17" class="group-header">${cat}</td>`; tbody.appendChild(trHead);
+                lines.forEach(row => {
+                    const bp = BLUEPRINTS[row.type];
+                    const tr = document.createElement('tr'); tr.className = `border-b border-gray-100 hover:bg-gray-50 transition-all ${row.active ? '' : 'row-disabled'}`;
+                    const funnelColor = FUNNEL_COLORS[bp.funnel]; const platColor = PLATFORM_DATA[row.platform].color;
+
+                    let check = `<label class="custom-checkbox relative flex justify-center items-center cursor-pointer"><input type="checkbox" class="opacity-0 absolute w-full h-full z-10 cursor-pointer" ${row.active ? 'checked' : ''} onchange="toggleActive('${row.id}')"><div class="w-4 h-4 border-2 border-gray-300 rounded relative transition-colors" style="color:${funnelColor}"></div></label>`;
+                    let platSelect = `<select class="select-manual" onchange="updateRow('${row.id}', 'platform', this.value)">${bp.platforms.map(p => `<option value="${p}" ${row.platform === p ? 'selected' : ''}>${p}</option>`).join('')}</select>`;
+                    const formats = PLATFORM_DATA[row.platform] ? PLATFORM_DATA[row.platform].formats : ['Standard'];
+                    let fmtSelect = `<select class="select-manual" onchange="updateRow('${row.id}', 'format', this.value)">${formats.map(f => `<option value="${f}" ${row.format === f ? 'selected' : ''}>${f}</option>`).join('')}</select>`;
+                    const biddings = PLATFORM_DATA[row.platform] && PLATFORM_DATA[row.platform].bidding ? PLATFORM_DATA[row.platform].bidding : ['N/A'];
+                    let bidSelect = `<select class="select-manual" style="width:110px" onchange="updateRow('${row.id}', 'bidding', this.value)">${biddings.map(b => `<option value="${b}" ${row.bidding === b ? 'selected' : ''}>${b}</option>`).join('')}</select>`;
+                    let modSelect = `<select class="select-manual" style="width:55px" onchange="updateRow('${row.id}', 'model', this.value)">${BUYING_MODELS.map(m => `<option value="${m}" ${row.model===m?'selected':''}>${m}</option>`).join('')}</select>`;
+                    let inpBudget = `<input type="number" class="input-manual input-budget" value="${row.budget}" onchange="updateRow('${row.id}', 'budget', this.value)">`;
+                    let inpCost = `<input type="number" step="0.01" class="input-manual" value="${row.unitCost}" onchange="updateRow('${row.id}', 'unitCost', this.value)">`;
+                    let inpCtr = `<input type="number" step="0.1" class="input-manual" value="${row.ctr}" onchange="updateRow('${row.id}', 'ctr', this.value)">`;
+                    let inpCr = `<input type="number" step="0.1" class="input-manual" value="${row.cr}" onchange="updateRow('${row.id}', 'cr', this.value)">`;
+                    let inpAov = `<input type="number" step="1" class="input-manual" value="${row.aov}" onchange="updateRow('${row.id}', 'aov', this.value)">`;
+                    let actions = `<i class="fas fa-copy btn-icon" onclick="duplicate('${row.id}')" title="Dupliquer"></i> <i class="fas fa-trash-alt btn-icon delete" onclick="remove('${row.id}')" title="Supprimer"></i>`;
+
+                    tr.innerHTML = `
+                        <td class="p-3 text-center border-r border-gray-200 bg-gray-50">${check}</td>
+                        <td class="p-3 font-medium text-pdt-blue text-[11px] flex items-center gap-2"><span class="plat-dot" style="background-color:${platColor}"></span>${bp.name}</td>
+                        <td class="p-3 text-center"><span class="badge-funnel" style="background:${funnelColor}">${bp.funnel}</span></td>
+                        <td class="p-3">${platSelect}</td><td class="p-3">${fmtSelect}</td><td class="p-3 text-center">${modSelect}</td><td class="p-3 bg-blue-50/20">${bidSelect}</td>
+                        <td class="p-3 text-right bg-yellow-50/50 border-l border-gray-200">${inpBudget}</td>
+                        <td class="p-3 text-right bg-yellow-50/50">${inpCost}</td><td class="p-3 text-right bg-yellow-50/50">${inpCtr}</td><td class="p-3 text-right bg-yellow-50/50">${inpCr}</td><td class="p-3 text-right bg-yellow-50/50">${inpAov}</td>
+                        <td class="p-3 calc-cell border-l border-gray-200" id="res-vol-${row.id}">-</td><td class="p-3 calc-cell text-pdt-placid font-bold" id="res-traf-${row.id}">-</td><td class="p-3 calc-cell text-gray-600" id="res-sales-${row.id}">-</td><td class="p-3 calc-cell text-green-700 font-bold" id="res-rev-${row.id}">-</td><td class="p-3 calc-cell text-pdt-blue font-bold" id="res-roi-${row.id}">-</td>
+                        <td class="p-3 text-center border-l border-gray-200">${actions}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        // --- UPDATES ---
+        function toggleActive(id) { 
+            const row=ROWS.find(r=>r.id===id); 
+            if(row){
+                row.active=!row.active; 
+                distributeBudget(); // Re-distribute budget based on new active set
+            } 
+        }
+        function updateRow(id,f,v) { 
+            const row=ROWS.find(r=>r.id===id); 
+            if(row){ 
+                if(f==='platform'){row.platform=v; row.format=PLATFORM_DATA[v].formats[0]; if(PLATFORM_DATA[v].bidding) row.bidding = PLATFORM_DATA[v].bidding[0]; renderTable(); } 
+                else if(f==='format'||f==='model'||f==='bidding'){row[f]=v;} 
+                else {row[f]=parseFloat(v)||0;} 
+                
+                // If user changes budget manually, we might want to update total or let it be overwritten by slider next move?
+                // For Smart Slider logic: if user changes row budget, we might update Total Budget Slider to match Sum?
+                if(f==='budget') {
+                    let total = 0; ROWS.forEach(r => total += r.budget);
+                    GLOBAL_SLIDER_VAL = total;
+                    document.getElementById('globalBudgetSlider').value = total;
+                    document.getElementById('sliderValDisplay').textContent = formatMoney(total);
+                    recalculate(); // Just recalc totals, don't redistribute
+                } else {
+                    recalculate(); 
+                }
+                renderGantt(); 
+            } 
+        }
+        function duplicate(id) { const r=ROWS.find(x=>x.id===id); if(r){addLine(r.type,true,r); distributeBudget();} }
+        function remove(id) { const i=ROWS.findIndex(x=>x.id===id); if(i>-1){ROWS.splice(i,1); delete TIMELINE_DATA[id]; distributeBudget();} }
+
+        // --- CALC ---
+        function recalculate() {
+            let tBud=0, tRev=0, tTraf=0, tSales=0, tVol=0;
+            let labels=[], dAlloc=[], dRev=[], cols=[];
+            let activeCount=0;
+
+            ROWS.forEach(row => {
+                if(!row.active) { ['vol','traf','sales','rev','roi'].forEach(k=>safeSetText(`res-${k}-${row.id}`,'-')); return; }
+                activeCount++;
+                let vol=0, traf=0, cost=row.unitCost>0?row.unitCost:1;
+                
+                if(row.model==='CPM'){ vol=(row.budget/cost)*1000; traf=vol*(row.ctr/100); }
+                else if(row.model==='CPC'){ traf=row.budget/cost; vol=traf/((row.ctr>0?row.ctr:1)/100); }
+                else if(row.model==='CPA'||row.model==='CPL'){ let salesBought=row.budget/cost; traf=salesBought/(row.cr>0?row.cr/100:0.01); vol=traf*5; }
+                else { vol=row.budget/5*1000; traf=vol*(row.ctr/100); }
+
+                let sales=row.model==='CPA'||row.model==='CPL' ? (row.budget/cost) : (traf*(row.cr/100));
+                let rev=sales*row.aov, roi=row.budget>0?rev/row.budget:0;
+
+                tBud+=row.budget; tRev+=rev; tTraf+=traf; tSales+=sales; tVol+=vol;
+
+                safeSetText(`res-vol-${row.id}`, formatCompact(vol));
+                safeSetText(`res-traf-${row.id}`, formatCompact(traf));
+                safeSetText(`res-sales-${row.id}`, Math.round(sales));
+                safeSetText(`res-rev-${row.id}`, formatMoney(rev));
+                safeSetText(`res-roi-${row.id}`, roi.toFixed(2)+'x');
+
+                if(row.budget>0) { 
+                    const bp = BLUEPRINTS[row.type];
+                    labels.push(`${bp.name} (${row.platform})`); 
+                    dAlloc.push(row.budget); 
+                    dRev.push(rev); 
+                    cols.push(PLATFORM_DATA[row.platform].color); 
+                }
+            });
+
+            const gROI=tBud>0?tRev/tBud:0, gAOV=tSales>0?tRev/tSales:0;
+            safeSetText('headBudgetSum', formatMoney(tBud)); // Extra check
+            ['headRevenue','ftRevenue'].forEach(i=>safeSetText(i, formatMoney(tRev)));
+            ['headROI','ftROI'].forEach(i=>safeSetText(i, gROI.toFixed(2)+'x'));
+            ['headTraffic','ftTraffic'].forEach(i=>safeSetText(i, formatCompact(tTraf)));
+            ['headSales','ftSales'].forEach(i=>safeSetText(i, Math.round(tSales)));
+            ['headAOV','ftAOV'].forEach(i=>safeSetText(i, Math.round(gAOV)+' €'));
+            ['headImps','ftVol'].forEach(i=>safeSetText(i, formatCompact(tVol)));
+            safeSetText('headActive', activeCount);
+            safeSetText('ftBudget', formatMoney(tBud));
+
+            updateCharts(labels,dAlloc,dRev,cols);
+            renderDetails();
+        }
+
+        // --- RENDER DETAILS ---
+        function renderDetails() {
+            const c=document.getElementById('cardsContainer'); c.innerHTML='';
+            ROWS.forEach(r => {
+                if(r.budget>0 && r.active) {
+                    const bp=BLUEPRINTS[r.type];
+                    const color = FUNNEL_COLORS[bp.funnel];
+                    const d=document.createElement('div'); d.className="bg-white p-3 rounded shadow border-l-4 action-card"; d.style.borderLeftColor=color;
+                    d.innerHTML=`<div class="flex justify-between"><span class="font-bold text-gray-700 text-xs">${bp.name}</span><span class="text-[9px] px-1 rounded text-white" style="background:${color}">${bp.funnel}</span></div><div class="text-[10px] text-gray-500 mt-1">${r.platform} - ${r.format}</div><div class="text-right text-xs font-mono text-gray-400 mt-2">${formatMoney(r.budget)}</div>`;
+                    c.appendChild(d);
+                }
+            });
+        }
+
+        function updateCharts(l,a,r,c) {
+            const ac=document.getElementById('allocChart'); const rc=document.getElementById('revChart');
+            if(!ac || !rc) return;
+            if(!chartAlloc) { chartAlloc=new Chart(ac,{type:'doughnut',data:{labels:l,datasets:[{data:a,backgroundColor:c,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:9}}}}}}); } else { chartAlloc.data.labels=l; chartAlloc.data.datasets[0].data=a; chartAlloc.data.datasets[0].backgroundColor=c; chartAlloc.update(); }
+            if(!chartRev) { chartRev=new Chart(rc,{type:'bar',data:{labels:l,datasets:[{label:'CA',data:r,backgroundColor:c}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{font:{size:9}}}}}}); } else { chartRev.data.labels=l; chartRev.data.datasets[0].data=r; chartRev.data.datasets[0].backgroundColor=c; chartRev.update(); }
+        }
+
+        function formatMoney(v){return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);}
+        function formatCompact(v){return new Intl.NumberFormat('fr-FR',{notation:"compact"}).format(v);}
+
+        document.getElementById('globalBudgetSlider').addEventListener('input', (e) => {
+            GLOBAL_SLIDER_VAL = parseInt(e.target.value);
+            distributeBudget();
+        });
+
+        window.onload = () => { initData(); distributeBudget(); resetTimeline(); };
+    </script>
+</body>
+</html>

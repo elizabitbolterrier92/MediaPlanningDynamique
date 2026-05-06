@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Média Planning | Bespoke Tools (Optimized Gantt)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bespoke: {
+                            primary: '#705ef2',   
+                            secondary: '#352e6c', 
+                            tertiary: '#bea2ff',  
+                            neutral: { light: '#f2f2f2', dark: '#14131b' }
+                        },
+                        funnel: {
+                            tofu: '#ff4d94', mofu: '#c026d3', bofu: '#7c3aed',
+                            aware: '#0ea5e9', consid: '#2563eb', conv: '#059669',
+                            mass: '#1e293b', pres: '#f97316', buzz: '#f59e0b', loyalty: '#b91c1c'
+                        },
+                        pdt: { merlot: '#722f37' }
+                    },
+                    fontFamily: { sans: ['Poppins', 'sans-serif'], serif: ['Poppins', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f2f2f2; color: #14131b; font-size: 12px; user-select: none; font-family: 'Poppins', sans-serif; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif !important; }
+        
+        /* Table Styles */
+        .table-container { background: white; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: visible; border: 1px solid #e5e7eb; position: relative; }
+        .table-header-cell { background-color: #f9fafb; color: #6b7280; font-weight: 700; font-size: 10px; letter-spacing: 0.03em; text-transform: uppercase; padding: 12px 8px; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #f3f4f6; white-space: nowrap; }
+        .group-header { background-color: #eaebed; color: #352e6c; font-weight: 800; font-size: 11px; letter-spacing: 0.05em; padding: 10px 16px; text-transform: uppercase; border-bottom: 1px solid #d1d5db; }
+        .row-item { border-bottom: 1px solid #f3f4f6; height: 50px; transition: background-color 0.1s; }
+        .row-item:hover { background-color: #fdfdfd; }
+        
+        /* Inputs & Selects */
+        .input-clean { border: 1px solid #d1d5db; border-radius: 4px; padding: 6px; font-size: 11px; color: #14131b; width: 100%; transition: all 0.2s; background: white; }
+        .input-clean:focus { outline: none; border-color: #705ef2; box-shadow: 0 0 0 1px #705ef2; }
+        .input-budget { border-left: 3px solid #14131b; font-weight: 700; text-align: right; }
+        .input-date { border: 1px solid #d1d5db; border-radius: 4px; padding: 4px; font-size: 10px; color: #4b5563; width: 90px; text-align: center; cursor: pointer; }
+        .select-clean { background-color: white; border: 1px solid #d1d5db; border-radius: 4px; padding: 5px 20px 5px 6px; font-size: 10px; color: #14131b; cursor: pointer; width: 100%; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.2rem center; background-repeat: no-repeat; background-size: 1em 1em; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
+
+        /* KPI Menu */
+        .kpi-menu { position: absolute; right: 0; top: 100%; margin-top: 5px; width: 260px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); z-index: 50; display: none; padding: 8px; max-height: 400px; overflow-y: auto; }
+        .kpi-menu.open { display: block; }
+        .kpi-option { display: flex; align-items: center; gap: 8px; padding: 6px; font-size: 11px; color: #14131b; cursor: pointer; border-radius: 4px; }
+        .kpi-option:hover { background-color: #f3f4f6; }
+        .kpi-option input { cursor: pointer; accent-color: #352e6c; }
+
+        /* Badges & Specifics */
+        .badge-funnel { font-size: 9px; padding: 3px 8px; border-radius: 3px; font-weight: 700; text-transform: uppercase; color: white; display: inline-block; min-width: 70px; text-align: center; }
+        .custom-checkbox input:checked + div { background-color: currentColor; border-color: currentColor; } 
+        .custom-checkbox input:checked + div:after { content: ''; position: absolute; width: 3px; height: 6px; border: solid white; border-width: 0 2px 2px 0; top: 1px; left: 3px; transform: rotate(45deg); }
+        .row-disabled { opacity: 0.5; background-color: #f9fafb; }
+        .row-disabled input, .row-disabled select { pointer-events: none; background-color: #f3f4f6; border-color: transparent; }
+        .row-disabled .custom-checkbox { pointer-events: auto; }
+
+        /* Gantt & Details */
+        .gantt-wrapper { border: 1px solid #e5e7eb; border-radius: 4px; background: white; overflow-x: auto; display: flex; flex-direction: column; position: relative; }
+        .gantt-header-row { display: flex; border-bottom: 1px solid #e5e7eb; height: 36px; background: #fcfcfc; min-width: max-content; }
+        .gantt-time-cell { text-align: center; border-right: 1px dashed #e5e7eb; font-size: 10px; font-weight: 700; color: #6b7280; text-transform: uppercase; padding-top: 10px; flex-shrink: 0; display: flex; justify-content: center; }
+        .gantt-body { position: relative; min-width: max-content; }
+        .gantt-row { display: flex; height: 48px; border-bottom: 1px solid #f3f4f6; position: relative; align-items: center; }
+        .gantt-label-col { width: 240px; min-width: 240px; border-right: 1px solid #e5e7eb; background: white; z-index: 40; height: 100%; display: flex; align-items: center; justify-content: space-between; padding-left: 16px; padding-right: 10px; position: sticky; left: 0; font-size: 11px; font-weight: 600; color: #14131b; box-shadow: 2px 0 5px rgba(0,0,0,0.05); }
+        .gantt-track-area { flex-grow: 1; position: relative; height: 100%; display: flex; }
+        .gantt-grid-lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; pointer-events: none; }
+        .gantt-line { flex: 1; border-right: 1px dashed #f3f4f6; height: 100%; }
+        .gantt-bar { position: absolute; top: 8px; height: 32px; border-radius: 4px; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.15); cursor: grab; z-index: 20; line-height: 1.1; overflow: hidden; padding: 0 4px; }
+        .gantt-bar:active { cursor: grabbing; box-shadow: 0 4px 8px rgba(0,0,0,0.25); z-index: 30; }
+        .bar-title { font-size: 9px; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
+        .bar-subtitle { font-size: 8px; font-weight: 400; white-space: nowrap; opacity: 0.9; }
+        .resize-handle { position: absolute; top: 0; width: 8px; height: 100%; cursor: col-resize; z-index: 40; }
+        .resize-handle.left { left: 0; } .resize-handle.right { right: 0; }
+        .gantt-bar:hover .resize-handle { background-color: rgba(255,255,255,0.3); }
+
+        /* Icons & Cards */
+        .comment-icon { color: #d1d5db; cursor: pointer; transition: color 0.2s; font-size: 12px; }
+        .comment-icon:hover { color: #14131b; }
+        .comment-icon.has-comments { color: #705ef2; }
+        .footer-totals td { background-color: #f3f4f6; color: #14131b; font-weight: 700; font-size: 11px; padding: 12px 8px; border-top: 2px solid #e5e7eb; text-align: right; }
+        .detail-card { border-left: 4px solid transparent; transition: transform 0.2s; background: white; }
+        .detail-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        
+        /* Updated Zoom Controls */
+        .zoom-controls { display: flex; align-items: center; gap: 8px; background: white; padding: 4px; border-radius: 6px; border: 1px solid #e5e7eb; }
+        .zoom-nav-btn { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: pointer; color: #6b7280; transition: all 0.2s; }
+        .zoom-nav-btn:hover { background-color: #f3f4f6; color: #14131b; }
+        .zoom-label { font-weight: 700; color: #352e6c; min-width: 80px; text-align: center; text-transform: uppercase; font-size: 11px; }
+        
+        .zoom-btn { background: white; border: 1px solid #e5e7eb; color: #4b5563; padding: 4px 10px; font-size: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .zoom-btn.active { background: #352e6c; color: white; border-color: #352e6c; }
+        .zoom-btn:first-child { border-radius: 4px 0 0 4px; }
+        .zoom-btn:last-child { border-radius: 0 4px 4px 0; }
+        .zoom-btn:not(:first-child) { border-left: none; }
+
+        /* Legend & Modals */
+        .legend-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-top: 1px solid #e5e7eb; box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05); z-index: 100; transition: transform 0.3s ease; transform: translateY(calc(100% - 32px)); }
+        .legend-footer.open { transform: translateY(0); }
+        .legend-toggle { height: 32px; background: #352e6c; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .legend-content { padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; color: #4b5563; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 999; backdrop-filter: blur(2px); }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: white; border-radius: 8px; width: 400px; max-width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; display: flex; flex-direction: column; max-height: 80vh; }
+        .modal-header { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; background: #f9fafb; display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-weight: 700; color: #14131b; }
+        .modal-body { padding: 16px; overflow-y: auto; flex-grow: 1; background: #fdfdfd; }
+        .modal-footer { padding: 12px 16px; border-top: 1px solid #e5e7eb; background: white; }
+        .comment-item { margin-bottom: 12px; font-size: 11px; position: relative; }
+        .comment-meta { font-size: 9px; color: #9ca3af; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center; }
+        .comment-text { background: white; padding: 8px; border-radius: 6px; border: 1px solid #e5e7eb; color: #14131b; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+        .mention-highlight { color: #705ef2; font-weight: 700; background: #f2f2f2; padding: 0 2px; border-radius: 2px; }
+        .delete-btn { color: #d1d5db; cursor: pointer; transition: color 0.2s; padding: 0 4px; }
+        .delete-btn:hover { color: #ef4444; }
+
+        /* IO & Sim */
+        .io-section { background: white; border-radius: 6px; border: 1px solid #bea2ff; box-shadow: 0 2px 5px rgba(112, 94, 242, 0.05); }
+        .io-header { background: #f2f2f2; border-bottom: 1px solid #bea2ff; padding: 12px 16px; border-radius: 6px 6px 0 0; }
+        .io-label { font-size: 9px; text-transform: uppercase; color: #6b7280; font-weight: 700; margin-bottom: 4px; display: block; }
+        .io-input { border: 1px solid #e5e7eb; border-radius: 4px; padding: 5px 8px; font-size: 11px; color: #14131b; width: 100%; }
+        .io-input:focus { border-color: #705ef2; outline: none; box-shadow: 0 0 0 1px #705ef2; }
+        .io-total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; }
+        .io-total-final { font-weight: 800; color: #352e6c; border-top: 1px solid #e5e7eb; padding-top: 6px; margin-top: 4px; font-size: 12px; }
+        
+        /* New Style for Top Config Menu */
+        .top-kpi-config { position: relative; display: inline-block; margin-left: 10px; }
+
+        /* Objective Buttons */
+        .obj-btn { padding: 6px 12px; border-radius: 20px; font-size: 10px; font-weight: 600; border: 1px solid #e5e7eb; color: #6b7280; background: white; transition: all 0.2s; }
+        .obj-btn:hover { border-color: #705ef2; color: #705ef2; }
+        .obj-btn.active { background: #705ef2; color: white; border-color: #705ef2; }
+    </style>
+</head>
+<body class="pb-32">
+
+    <header class="bg-bespoke-secondary text-white py-4 px-8 shadow-md sticky top-0 z-[100]">
+        <div class="max-w-[1900px] mx-auto flex justify-between items-center">
+            <div class="flex flex-col">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl font-bold tracking-tight">Bespoke</span>
+                </div>
+                <p class="text-[10px] text-bespoke-tertiary tracking-wider mt-1 ml-14">MEDIA PLANNING TOOL V65</p>
+            </div>
+            <div class="flex gap-4 items-center">
+                 <button onclick="resetData()" class="bg-[#be123c] hover:bg-[#9f1239] text-white px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-colors tracking-wide border border-white/10">
+                    <i class="fas fa-undo mr-2"></i> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1900px] mx-auto px-4 py-6 space-y-6">
+
+            <div class="flex items-center gap-4">
+                <span class="bg-bespoke-secondary text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs">1</span>
+                <h3 class="text-lg font-bold text-bespoke-neutral-dark">Résumé des KPIs de Campagne</h3>
+                
+                <div class="relative top-kpi-config">
+                    <button onclick="toggleTopKpiMenu()" class="text-gray-400 hover:text-bespoke-primary transition-colors">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <div id="topKpiMenu" class="kpi-menu" style="left: 0; right: auto;">
+                        <div class="text-[10px] font-bold text-gray-400 uppercase mb-2 border-b border-gray-100 pb-1 flex justify-between">
+                            <span>KPIs Affichés</span>
+                            <span id="kpiCountBadge">8/8</span>
+                        </div>
+                        <div id="topKpiOptions"></div>
+                    </div>
+                </div>
+
+                <div class="h-px bg-gray-300 flex-grow"></div>
+            </div>
+            
+        
+        <section class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-bespoke-primary border border-gray-200">
+            <div class="flex flex-col xl:flex-row gap-8 items-center">
+                <div class="w-full xl:w-1/3 bg-white p-4 rounded border border-gray-200 shadow-sm h-full flex flex-col justify-center">
+                    <div class="flex justify-between items-end mb-2">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-2"><i class="fas fa-coins text-bespoke-primary"></i> Budget Campagne</label>
+                        <span class="text-3xl font-bold text-bespoke-neutral-dark" id="sliderValDisplay">24 000 €</span>
+                    </div>
+                    <input type="range" id="globalBudgetSlider" min="0" max="100000" step="1000" value="50000" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-bespoke-primary">
+                    <div class="flex justify-between text-[9px] text-gray-400 mt-1"><span>0 €</span><span>50 k€</span><span>100 k€</span></div>
+                </div>
+                
+                <div id="kpiGrid" class="w-full xl:w-2/3 grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4 text-center">
+                    </div>
+            </div>
+        </section>
+        
+        <div class="flex items-center gap-4">
+            <span class="bg-bespoke-secondary text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs">2</span>
+            <h3 class="text-lg font-bold text-bespoke-neutral-dark">Tableau de Construction Budgétaire</h3>
+            <div class="h-px bg-gray-300 flex-grow"></div>
+        </div>
+
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-3 mb-2 flex items-center gap-4">
+            <span class="font-bold text-xs uppercase text-gray-500 flex items-center gap-2"><i class="fas fa-bullseye text-bespoke-primary"></i> Objectif de Campagne :</span>
+            <div class="flex flex-wrap gap-2" id="objectiveSelector">
+                <button onclick="setObjective('all')" class="obj-btn active" id="obj-all">Tous</button>
+                <button onclick="setObjective('Notoriété')" class="obj-btn" id="obj-Notoriété">Notoriété (Awareness)</button>
+                <button onclick="setObjective('Trafic')" class="obj-btn" id="obj-Trafic">Trafic (Considération)</button>
+                <button onclick="setObjective('Ventes')" class="obj-btn" id="obj-Ventes">Ventes (Conversion)</button>
+                <button onclick="setObjective('Fidélisation')" class="obj-btn" id="obj-Fidélisation">Fidélisation (Loyalty)</button>
+            </div>
+        </div>
+
+        <section class="table-container">
+            <div class="p-4 border-b border-gray-200 bg-white flex justify-between items-center sticky top-0 z-40">
+                <div class="flex items-center gap-4">
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-edit"></i> Construction Budgétaire</h3>
+                    
+                    <div class="flex items-center gap-2">
+                        <button onclick="openAddRowModal()" class="bg-bespoke-secondary hover:bg-bespoke-primary text-white text-[10px] font-bold px-3 py-1.5 rounded flex items-center gap-2 transition-colors shadow-sm">
+                            <i class="fas fa-plus"></i> Ajouter Ligne
+                        </button>
+
+                        <div class="relative">
+                            <button onclick="toggleKpiMenu()" class="bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-bold px-3 py-1.5 rounded flex items-center gap-2 transition-colors">
+                                <i class="fas fa-columns"></i> Config. Cols
+                            </button>
+                            <div id="kpiMenu" class="kpi-menu">
+                                <div class="text-[10px] font-bold text-gray-400 uppercase mb-2 border-b border-gray-100 pb-1">Afficher / Masquer</div>
+                                <div id="kpiOptions"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 text-[9px] font-bold uppercase text-gray-400">
+                    <span class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded bg-funnel-tofu"></div> Tofu</span>
+                    <span class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded bg-funnel-mofu"></div> Mofu</span>
+                    <span class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded bg-funnel-conv"></div> Conv</span>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[1800px]">
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                    <tfoot class="footer-totals"><tr id="tableFoot"></tr></tfoot>
+                </table>
+            </div>
+        </section>
+<div class="flex items-center gap-4">
+                <span class="bg-bespoke-secondary text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs">3</span>
+                <h3 class="text-lg font-bold text-bespoke-neutral-dark">Générateur d'Ordres d'Insertion</h3>
+                <div class="h-px bg-gray-300 flex-grow"></div>
+            </div>
+        <section id="ioSection" class="io-section">
+            <div class="io-header flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <div class="bg-bespoke-primary text-white w-6 h-6 rounded flex items-center justify-center"><i class="fas fa-file-signature text-xs"></i></div>
+                    <h3 class="font-bold text-lg text-bespoke-secondary">Ordre d'Insertion (IO)</h3>
+                </div>
+                <div class="flex gap-2 text-xs text-bespoke-primary bg-white px-3 py-1 rounded-full border border-bespoke-tertiary">
+                    <i class="fas fa-sync-alt animate-pulse"></i> Source unique pour PDF
+                </div>
+            </div>
+            
+            <div class="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <div class="lg:col-span-4 space-y-4 border-r border-gray-100 pr-4">
+                    <h4 class="font-bold text-gray-800 text-xs uppercase border-b border-gray-100 pb-1 mb-2">Parties Prenantes</h4>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="io-label">De (Agence/Émetteur)</span>
+                            <input type="text" id="ioAgencyName" class="io-input mb-1 font-bold" value="Bespoke Agency" placeholder="Nom Agence">
+                            <input type="text" id="ioAgencyAddress" class="io-input mb-1" value="12 Rue de la Pub, Paris" placeholder="Adresse">
+                            <input type="email" id="ioAgencyEmail" class="io-input" value="contact@bespoke.com" placeholder="Email">
+                        </div>
+                        <div>
+                            <span class="io-label">Pour (Annonceur)</span>
+                            <input type="text" id="ioClientName" class="io-input mb-1 font-bold" value="Mon Client VIP" placeholder="Nom Client">
+                            <input type="text" id="ioClientAddress" class="io-input mb-1" placeholder="Adresse Client">
+                            <input type="text" id="ioClientContact" class="io-input" placeholder="Contact">
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                         <span class="io-label">Nom de Campagne</span>
+                         <input type="text" id="ioCampaignName" class="io-input font-bold text-bespoke-primary" value="Campagne Q1 - Acquisition" placeholder="Nom de la campagne">
+                    </div>
+                </div>
+
+                <div class="lg:col-span-5 space-y-4 border-r border-gray-100 pr-4">
+                    <h4 class="font-bold text-gray-800 text-xs uppercase border-b border-gray-100 pb-1 mb-2">Détails Contractuels</h4>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                         <div>
+                            <span class="io-label">Date Début</span>
+                            <input type="text" id="ioStartDate" class="io-input bg-gray-50 text-gray-500" readonly>
+                        </div>
+                        <div>
+                            <span class="io-label">Date Fin</span>
+                            <input type="text" id="ioEndDate" class="io-input bg-gray-50 text-gray-500" readonly>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <span class="io-label">Mentions Légales / Conditions Particulières</span>
+                        <textarea id="ioLegal" class="io-input h-20 resize-none" placeholder="Ex: Paiement à 30 jours fin de mois. Sous réserve de disponibilité des inventaires.">Paiement à 30 jours fin de mois. Sous réserve de disponibilité des inventaires.</textarea>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-3 flex flex-col justify-between h-full bg-gray-50 p-4 rounded border border-gray-100">
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-xs uppercase border-b border-gray-200 pb-1 mb-3">Synthèse Financière</h4>
+                        
+                        <div class="space-y-2">
+                            <div class="io-total-row">
+                                <span class="text-gray-500">Total Média Net</span>
+                                <span class="font-bold text-gray-700" id="ioMediaTotal">0 €</span>
+                            </div>
+                            <div class="io-total-row items-center">
+                                <span class="text-gray-500">Frais Tech (%)</span>
+                                <input type="number" id="ioFeesPct" value="0" min="0" max="100" class="io-input w-12 text-right py-0 h-6" onchange="updateIOFinancials()">
+                            </div>
+                            <div class="io-total-row items-center">
+                                <span class="text-gray-500">Remise (€)</span>
+                                <input type="number" id="ioDiscount" value="0" min="0" class="io-input w-16 text-right py-0 h-6" onchange="updateIOFinancials()">
+                            </div>
+                             <div class="io-total-row items-center">
+                                <span class="text-gray-500">TVA (20%)</span>
+                                <input type="checkbox" id="ioVatCheck" checked onchange="updateIOFinancials()" class="accent-bespoke-primary">
+                            </div>
+                            <div class="io-total-row io-total-final">
+                                <span>TOTAL À PAYER</span>
+                                <span id="ioGrandTotal" class="text-bespoke-secondary text-sm">0 €</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="generateIOPDF()" class="mt-4 w-full bg-bespoke-primary hover:bg-bespoke-secondary text-white font-bold py-3 px-4 rounded shadow-md flex items-center justify-center gap-2 transition-all active:scale-95">
+                        <i class="fas fa-file-pdf"></i> Générer l'OI (PDF)
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+<section>
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <div class="bg-bespoke-secondary text-white w-6 h-6 rounded flex items-center justify-center"><i class="fas fa-calendar-alt text-xs"></i></div>
+                    <h3 class="font-bold text-xl text-bespoke-neutral-dark">Calendrier d'Activation - Détails</h3>
+                </div>
+                
+                <div class="flex gap-4">
+                    <div class="zoom-controls">
+                        <div class="zoom-nav-btn" onclick="shiftTime(-1)"><i class="fas fa-chevron-left"></i></div>
+                        <span id="ganttTitle" class="zoom-label">2026</span>
+                        <div class="zoom-nav-btn" onclick="shiftTime(1)"><i class="fas fa-chevron-right"></i></div>
+                    </div>
+
+                    <div class="flex">
+                        <button class="zoom-btn active" id="btnYear" onclick="setZoom('year')">Année</button>
+                        <button class="zoom-btn" id="btnMonth" onclick="setZoom('month')">Mois</button>
+                        <button class="zoom-btn" id="btnWeek" onclick="setZoom('week')">Semaine</button>
+                    </div>
+                    
+                    <button onclick="exportGantt()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-[10px] font-bold px-3 py-1.5 rounded flex items-center gap-2 transition-colors border border-gray-300">
+                        <i class="fas fa-camera"></i> Exporter (Image)
+                    </button>
+                </div>
+            </div>
+            
+            <div class="gantt-wrapper shadow-sm" id="ganttContainer">
+                <div class="gantt-header-row" id="ganttHeaderRow">
+                    <div class="gantt-label-col" style="border-right:1px solid #e5e7eb; box-shadow:none; padding-left:16px;">ACTIVATIONS</div>
+                    <div id="ganttHeaderMonths" class="flex flex-1 h-full"></div>
+                </div>
+                <div class="gantt-body" id="ganttBody"></div>
+            </div>
+        </section>
+<section class="space-y-4 pt-4">
+    <div id="detailsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+</section>
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm relative z-0">
+                <h4 class="font-bold text-gray-800 mb-4 text-xs uppercase flex justify-between"><span>Allocation Budgétaire</span><i class="fas fa-chart-pie"></i></h4>
+                <div class="relative h-64 w-full"><canvas id="allocChart"></canvas></div>
+            </div>
+            <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm relative z-0">
+                <h4 class="font-bold text-gray-800 mb-4 text-xs uppercase flex justify-between"><span>CA Généré par Levier</span><i class="fas fa-chart-bar"></i></h4>
+                <div class="relative h-64 w-full"><canvas id="revChart"></canvas></div>
+            </div>
+        </section>
+
+
+
+
+        <section class="bg-white rounded-xl shadow-sm border border-gray-200 mt-8 overflow-hidden" id="simulationSection">
+    <div class="bg-bespoke-secondary px-6 py-4 border-b border-bespoke-tertiary">
+        <div class="flex justify-between items-center">
+            <div>
+                <h3 class="font-sans text-lg font-bold text-white flex items-center gap-3">
+                    <i class="fas fa-chart-pie opacity-80"></i> Simulateur & Arbitrage Prévisionnel
+                </h3>
+                <p class="text-bespoke-tertiary text-xs mt-0.5 opacity-80">
+                    Projetez vos performances futures basées sur vos historiques et les benchmarks sectoriels Bespoke.
+                </p>
+            </div>
+            <button onclick="document.getElementById('simulationContent').classList.toggle('hidden')" class="text-white hover:text-bespoke-tertiary transition-colors">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="p-0" id="simulationContent">
+        <div class="grid grid-cols-1 xl:grid-cols-12 min-h-[600px]">
+            
+            <div class="xl:col-span-4 border-r border-gray-200 bg-white flex flex-col relative z-10">
+                
+                <div class="p-6 space-y-6 overflow-y-auto custom-scrollbar flex-grow" style="max-height: 600px;">
+                    
+                    <div>
+                        <h4 class="text-xs font-bold text-bespoke-secondary uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
+                            1. Contexte & Historique
+                        </h4>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div>
+                                <label class="io-label">Secteur d'activité</label>
+                                <div class="relative">
+                                    <select id="sim-sector" class="select-clean w-full">
+                                        <option value="">Sélectionnez...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="io-label">KPI Prioritaire (N+1)</label>
+                                <div class="relative">
+                                    <select id="sim-kpi" class="select-clean w-full" onchange="simUpdateUnitLabel()">
+                                        <option value="">Sélectionnez...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-3 pt-2">
+                                <div>
+                                    <label class="text-[9px] text-gray-400 uppercase font-bold">Budget Année N-1 (€)</label>
+                                    <input type="text" id="simTotalBudget" class="w-full text-sm font-bold text-bespoke-secondary border-b border-gray-200 py-1 bg-transparent outline-none" value="-" readonly>
+                                </div>
+                                <div>
+                                    <label class="text-[9px] text-gray-400 uppercase font-bold" id="simResultLabel">CA Généré N-1 (€)</label>
+                                    <input type="text" id="simTotalRev" class="w-full text-sm font-bold text-bespoke-primary border-b border-gray-200 py-1 bg-transparent outline-none" value="-" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-xs font-bold text-bespoke-secondary uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
+                            2. Cibles & Zones
+                        </h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="io-label">Focus Géographique</label>
+                                <div class="bg-white border border-gray-200 rounded px-2 py-1.5 focus-within:border-bespoke-primary transition-all flex flex-wrap gap-1 items-center min-h-[38px]" onclick="document.getElementById('sim-geo-input').focus()">
+                                    <div id="geo-tags-container" class="contents"></div>
+                                    <input type="text" id="sim-geo-input" list="geo-suggestions" class="flex-grow text-xs outline-none bg-transparent min-w-[100px]" placeholder="Ex: France, Paris...">
+                                    <datalist id="geo-suggestions"></datalist>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="io-label">Cible Prioritaire</label>
+                                <div class="bg-white border border-gray-200 rounded px-2 py-1.5 focus-within:border-bespoke-primary transition-all flex flex-wrap gap-1 items-center min-h-[38px]" onclick="document.getElementById('sim-target-input').focus()">
+                                    <div id="target-tags-container" class="contents"></div>
+                                    <input type="text" id="sim-target-input" list="target-suggestions" class="flex-grow text-xs outline-none bg-transparent min-w-[100px]" placeholder="Ex: Gen Z, Parents...">
+                                    <datalist id="target-suggestions"></datalist>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-xs font-bold text-bespoke-secondary uppercase tracking-wider mb-3 border-b border-gray-100 pb-2">
+                            3. Historique par Levier
+                        </h4>
+                        
+                        <div class="bg-gray-50 p-2 rounded border border-gray-200 mb-3 flex flex-col gap-2">
+                            <div class="flex gap-2">
+                                <select id="sim-add-channel-select" class="select-clean text-xs w-1/2" onchange="simUpdateFormats()">
+                                    <option value="">Levier...</option>
+                                </select>
+                                <select id="sim-add-format-select" class="select-clean text-xs w-1/2">
+                                    <option value="Global">Format...</option>
+                                </select>
+                            </div>
+                            <button onclick="simAddChannelRow()" class="w-full bg-bespoke-secondary text-white text-[10px] font-bold uppercase py-2 rounded hover:bg-bespoke-primary transition-colors flex items-center justify-center gap-2">
+                                <i class="fas fa-plus-circle"></i> Ajouter
+                            </button>
+                        </div>
+
+                        <div id="sim-channels-container" class="space-y-2 pb-4">
+                            <div class="text-center py-4 text-gray-400 italic text-[10px]" id="sim-empty-state">
+                                Aucun historique ajouté.
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="p-4 border-t border-gray-200 bg-white">
+                    <button onclick="runSimulation()" class="w-full bg-bespoke-primary hover:bg-blue-700 text-white font-bold py-3 px-4 rounded shadow-md flex items-center justify-center gap-2 transition-all active:scale-95">
+                        <i class="fas fa-calculator"></i> Lancer l'Arbitrage
+                    </button>
+                </div>
+            </div>
+
+            <div class="xl:col-span-8 bg-gray-50/50 relative">
+                
+                <div id="sim-waiting-state" class="absolute inset-0 z-20 flex flex-col items-center justify-center text-center p-6 bg-white/80 backdrop-blur-sm transition-all duration-500">
+                    <div class="w-16 h-16 bg-white rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center mb-6 transform rotate-3">
+                        <i class="fas fa-chart-line text-2xl text-bespoke-secondary"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-bespoke-secondary mb-2">En attente de configuration</h4>
+                    <p class="text-sm text-gray-500 max-w-sm leading-relaxed">
+                        Renseignez les données dans la colonne de gauche pour générer une projection de performance et un nouvel arbitrage budgétaire basé sur l'IA Bespoke.
+                    </p>
+                </div>
+
+                <div id="sim-results-container" class="p-8 h-full overflow-y-auto filter blur-sm transition-all duration-500 opacity-50 pointer-events-none">
+                    
+                    <div class="grid grid-cols-3 gap-6 mb-8">
+                        <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                            <span class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Projection N+1</span>
+                            <div class="text-2xl font-bold text-bespoke-primary mt-1" id="simProjRev">- €</div>
+                            <div class="text-[10px] text-green-600 font-bold mt-1" id="simProjGrowth">--</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                            <span class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Performance (ROAS)</span>
+                            <div class="text-2xl font-bold text-bespoke-secondary mt-1" id="simProjRoas">-</div>
+                            <div class="text-[10px] text-gray-400 mt-1">vs N-1</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                            <span class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Indice de Confiance</span>
+                            <div class="w-full bg-gray-100 rounded-full h-2 mt-3">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 85%"></div>
+                            </div>
+                            <div class="text-[10px] text-right text-gray-400 mt-1">Élevé</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm mb-6">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 text-gray-500 text-[10px] uppercase font-bold border-b border-gray-200">
+                                <tr>
+                                    <th class="p-4 font-bold text-bespoke-secondary">Levier Média</th>
+                                    <th class="p-4 text-right">Alloc. Actuelle</th>
+                                    <th class="p-4 text-right bg-bespoke-primary/5 text-bespoke-primary">Recommandation</th>
+                                    <th class="p-4 text-center">Action</th>
+                                    <th class="p-4">Raisonnement</th>
+                                </tr>
+                            </thead>
+                            <tbody id="simTableBody" class="text-xs text-gray-600 divide-y divide-gray-100">
+                                </tbody>
+                        </table>
+                    </div>
+
+                    <div class="bg-indigo-50 border border-indigo-100 p-5 rounded-lg flex gap-4 items-start">
+                        <div class="bg-white p-2 rounded-full shadow-sm text-bespoke-primary">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-bold text-sm text-bespoke-secondary mb-2">Opportunités de Marché</h5>
+                            <ul id="simInsightsList" class="text-xs text-gray-600 space-y-1.5 list-disc list-inside">
+                                <li>En attente de calcul...</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+        
+        </main>
+
+    <footer id="legendFooter" class="legend-footer">
+        <div class="legend-toggle" onclick="toggleLegend()"><i class="fas fa-palette mr-2"></i> Légende des Plateformes</div>
+        <div class="legend-content" id="legendContent"></div>
+    </footer>
+
+    <div id="commentModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Commentaires</h3>
+                <button onclick="closeCommentModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                </div>
+            <div class="modal-footer flex gap-2">
+                <input type="text" id="newCommentInput" class="input-clean flex-grow" placeholder="Ajouter un commentaire (@ pour notifier)...">
+                <button onclick="postComment()" class="bg-bespoke-secondary text-white px-4 py-1.5 rounded text-xs font-bold hover:bg-gray-800"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="addRowModal" class="modal-overlay">
+        <div class="modal-box" style="width: 300px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Ajouter un levier</h3>
+                <button onclick="document.getElementById('addRowModal').classList.remove('open')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-4 bg-white">
+                <label class="io-label mb-2">Sélectionnez le levier :</label>
+                <select id="newRowPlatformSelect" class="select-clean w-full mb-4 h-10 text-sm">
+                    </select>
+                <button onclick="confirmAddRow()" class="w-full bg-bespoke-secondary hover:bg-bespoke-primary text-white font-bold py-2 rounded text-xs uppercase">
+                    Ajouter au plan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        Chart.defaults.font.family = "'Poppins', sans-serif";
+        Chart.defaults.color = '#64748b';
+
+        // --- DATA ---
+        const ALL_MODELS = ['CPM', 'CPC', 'CPA', 'CPL', 'CPE', 'CPV', 'Flat', 'GRP'];
+        const PLATFORMS_DATA = {
+            'Google Ads': { formats: ['Performance Max (P-Max)', 'Annonces Textuelles (Search)', 'Annonces Shopping', 'Bannières Display', 'Annonces Discovery / Demand Gen', 'Annonces App'], bidding: ['CPC Manuel', 'Maximiser les clics', 'Taux d\'impressions cible', 'Maximiser les conversions', 'CPA Cible', 'Maximiser la valeur', 'ROAS Cible', 'vCPM'], models: ['CPC', 'CPA', 'ROAS'], color: '#10B981' },
+            'YouTube Ads': { formats: ['In-Stream désactivable', 'In-Stream non désactivable', 'Bumper Ads', 'In-Feed Video', 'Shorts Ads', 'Masthead'], bidding: ['CPV Maximum', 'CPA Cible', 'Maximiser conversions', 'CPM Cible', 'CPM Maximum'], models: ['CPV', 'CPM', 'CPA'], color: '#EF4444' },
+            'TikTok Ads': { formats: ['In-Feed Ads', 'TopView', 'Spark Ads', 'Branded Effects', 'Branded Mission', 'Pangle'], bidding: ['Lowest Cost', 'Cost Cap', 'Bid Cap'], models: ['CPM', 'CPC', 'CPV'], color: '#000000' },
+            'Meta Ads': { formats: ['Advantage +', 'Image unique', 'Vidéo', 'Carrousel', 'Collection', 'Stories', 'Reels', 'Instant Experience', 'Lead Form'], bidding: ['Highest Volume', 'Cost per Result Goal', 'Bid Cap', 'Minimum ROAS'], models: ['CPM', 'CPC', 'CPA'], color: '#2563EB' },
+            'LinkedIn Ads': { formats: ['Single Image', 'Video', 'Carousel', 'Document', 'Message / Conversation', 'Event Ads', 'Thought Leader'], bidding: ['Max Delivery', 'Target Cost', 'CPC Manuel', 'CPM Manuel'], models: ['CPC', 'CPM', 'CPL'], color: '#0077B5' },
+            'Pinterest Ads': { formats: ['Épingle Standard', 'Épingle Vidéo', 'Carrousel', 'Collections', 'Idea Ads', 'Quiz Ads'], bidding: ['Auto', 'Custom (CPC)', 'Target CPA', 'Target ROAS'], models: ['CPC', 'CPM', 'CPA'], color: '#BD081C' },
+            'Amazon Ads': { formats: ['Sponsored Products', 'Sponsored Brands', 'Sponsored Display', 'Amazon Live', 'Stores'], bidding: ['Dynamic (Down)', 'Dynamic (Up/Down)', 'Fixed'], models: ['CPC', 'CPM'], color: '#F59E0B' },
+            'Twitch Ads': { formats: ['Homepage Headliner', 'Stream Display', 'First Impression', 'Pre-roll', 'Mid-roll', 'Live dédié', 'Overlay', 'Chatbot', 'Product placement'], bidding: ['CPM', 'Forfaitaire'], models: ['CPM', 'Flat'], color: '#7C3AED' },
+            'TV': { formats: ['Spot classique', 'Parrainage', 'Placement produit', 'TV Segmentée'], bidding: ['Grille Tarifaire', 'Coût GRP garanti', 'Enchère Prog'], models: ['Flat', 'GRP', 'CPM'], color: '#312E81' },
+            'Radio': { formats: ['Spot classique', 'Sponsoring', 'Mentions animateur', 'Audio Digital', 'Podcast'], bidding: ['Grille Tarifaire', 'Gré à gré'], models: ['Flat', 'CPM'], color: '#64748B' },
+            'Influence': { formats: ['Post sponsorisé', 'Story sponsorisée', 'Reel / TikTok dédié', 'Vidéo YouTube', 'Ambassadorat'], bidding: ['Forfait', 'CPA', 'Hybride'], models: ['Flat', 'CPA', 'CPE'], color: '#EA580C' },
+            'Street Marketing': { formats: ['Affichage sauvage', 'Clean Tag', 'Flyering', 'Homme-sandwich', 'Projections', 'Flash Mob'], bidding: ['Forfait'], models: ['Flat'], color: '#84CC16' },
+            'CRM / Email': { formats: ['Emailing', 'SMS', 'Push Notif', 'WhatsApp', 'Courrier'], bidding: ['CPM', 'Coût envoi'], models: ['CPM', 'Flat'], color: '#0D9488' }
+        };
+
+        const MONTHS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+        // --- MOTEUR RENDEMENTS DÉCROISSANTS (SATURATION) ---
+        function getSaturationRatio(budget) {
+            // 1. Si pas de budget, performance standard (100%)
+            if (!budget || budget <= 0) return 1;
+
+            // 2. CONFIGURATION DE L'ALGO
+            const REF_BUDGET = 10000; // Budget de référence où la perf est "normale"
+            const FATIGUE = 0.15;     // Intensité de la baisse de ROI (0.15 = réaliste)
+
+            // 3. CALCUL (Courbe de puissance inversée)
+            // Plus le budget dépasse 10k, plus le ratio descend sous 1.0
+            // Plus le budget est bas, plus le ratio monte (effet d'opportunité)
+            let efficiency = Math.pow(budget / REF_BUDGET, -FATIGUE);
+
+            // 4. GARDEN-FOUS (Limites)
+            // On empêche le ROI de s'envoler à l'infini sur les petits budgets (max +20% de perf)
+            if (efficiency > 1.2) efficiency = 1.2;
+            // On empêche le ROI de s'effondrer totalement sur les gros budgets (min 50% de perf)
+            if (efficiency < 0.5) efficiency = 0.5;
+
+            return efficiency;
+        }
+        const FUNNELS = { 'TOFU': '#ff4d94', 'MOFU': '#c026d3', 'BOFU': '#7c3aed', 'Awareness': '#0ea5e9', 'Consid.': '#2563eb', 'Conversion': '#059669', 'Mass': '#1e293b', 'Prescription': '#f97316', 'Buzz': '#f59e0b', 'Loyalty': '#b91c1c' };
+        
+        const BLUEPRINTS = {
+            social_tofu: { cat: "1. MÉDIAS DIGITAUX", name: 'Social Ads', funnel: 'TOFU', platform: 'Meta Ads', weight: 15 },
+            social_mofu: { cat: "1. MÉDIAS DIGITAUX", name: 'Social Ads', funnel: 'MOFU', platform: 'Meta Ads', weight: 15 },
+            google_aware: { cat: "1. MÉDIAS DIGITAUX", name: 'Google Ads', funnel: 'Awareness', platform: 'YouTube Ads', weight: 5 },
+            google_consid: { cat: "1. MÉDIAS DIGITAUX", name: 'Google Ads', funnel: 'Consid.', platform: 'Google Ads', weight: 10 },
+            google_conv: { cat: "1. MÉDIAS DIGITAUX", name: 'Google Ads', funnel: 'Conversion', platform: 'Google Ads', weight: 20 },
+            amazon_bofu: { cat: "2. MARKETPLACES", name: 'Amazon', funnel: 'Conversion', platform: 'Amazon Ads', weight: 15 },
+            tv_mass: { cat: "3. MÉDIAS LINÉAIRES", name: 'Télévision', funnel: 'Mass', platform: 'TV', weight: 0 },
+            radio_mass: { cat: "3. MÉDIAS LINÉAIRES", name: 'Radio', funnel: 'Mass', platform: 'Radio', weight: 0 },
+            influ_pres: { cat: "4. HORS MÉDIA & BRANDING", name: 'Influence', funnel: 'Prescription', platform: 'Influence', weight: 10 },
+            twitch_brand: { cat: "4. HORS MÉDIA & BRANDING", name: 'Twitch', funnel: 'Buzz', platform: 'Twitch Ads', weight: 5 },
+            street_buzz: { cat: "4. HORS MÉDIA & BRANDING", name: 'Guérilla', funnel: 'Buzz', platform: 'Street Marketing', weight: 0 },
+            crm_loyalty: { cat: "4. HORS MÉDIA & BRANDING", name: 'CRM', funnel: 'Loyalty', platform: 'CRM / Email', weight: 5 }
+        };
+
+        const COLS = [
+            { id: 'check', label: 'On', width: 'w-10', type: 'check', align: 'center', mandatory: true, visible: true },
+            { id: 'name', label: 'Levier', width: 'w-32', type: 'text', align: 'left', mandatory: true, visible: true },
+            { id: 'funnel', label: 'Funnel', width: 'w-24', type: 'badge', align: 'center', mandatory: true, visible: true },
+            { id: 'dates', label: 'Période (Début / Fin)', width: 'w-48', type: 'dates', align: 'center', mandatory: true, visible: true },
+            { id: 'platform', label: 'Plateforme', width: 'w-36', type: 'select', align: 'left', mandatory: true, visible: true },
+            { id: 'format', label: 'Format', width: 'w-48', type: 'select', align: 'left', mandatory: true, visible: true },
+            { id: 'model', label: 'Modèle', width: 'w-24', type: 'select', align: 'left', mandatory: true, visible: true },
+            { id: 'bidding', label: 'Stratégie Ench.', width: 'w-48', type: 'select', align: 'left', mandatory: true, visible: true },
+            { id: 'budget', label: 'Budget (€)', width: 'w-28', type: 'money', align: 'right', mandatory: true, visible: true },
+            
+            { id: 'unitCost', label: 'Coût Unit.', width: 'w-20', type: 'input', align: 'right', mandatory: false, visible: true },
+            { id: 'ctr', label: 'CTR (%)', width: 'w-16', type: 'input', align: 'right', mandatory: false, visible: true },
+            { id: 'cr', label: 'Taux Conv. (%)', width: 'w-20', type: 'input', align: 'right', mandatory: false, visible: true },
+            { id: 'aov', label: 'PM (€)', width: 'w-16', type: 'input', align: 'right', mandatory: false, visible: true },
+            { id: 'impressions', label: 'Impressions', width: 'w-24', type: 'calc', align: 'right', mandatory: false, visible: true },
+            { id: 'traffic', label: 'Trafic', width: 'w-20', type: 'calc', align: 'right', mandatory: false, visible: true },
+            { id: 'sales', label: 'Ventes', width: 'w-16', type: 'calc', align: 'right', mandatory: false, visible: true },
+            { id: 'revenue', label: 'CA (€)', width: 'w-24', type: 'calc', align: 'right', mandatory: false, visible: true },
+            { id: 'roi', label: 'ROI', width: 'w-16', type: 'calc', align: 'right', mandatory: false, visible: true },
+            
+            { id: 'grp', label: 'GRP', width: 'w-16', type: 'input', align: 'right', mandatory: false, visible: false },
+            { id: 'reach', label: 'Reach', width: 'w-20', type: 'input', align: 'right', mandatory: false, visible: false },
+            { id: 'freq', label: 'Répétition', width: 'w-16', type: 'input', align: 'right', mandatory: false, visible: false },
+            { id: 'cost_grp', label: 'Coût GRP', width: 'w-20', type: 'calc', align: 'right', mandatory: false, visible: false },
+            { id: 'cpm', label: 'eCPM', width: 'w-20', type: 'calc', align: 'right', mandatory: false, visible: false },
+            { id: 'cpc', label: 'eCPC', width: 'w-20', type: 'calc', align: 'right', mandatory: false, visible: false },
+            { id: 'cpa', label: 'CPA', width: 'w-20', type: 'calc', align: 'right', mandatory: false, visible: false },
+            { id: 'cpl', label: 'CPL', width: 'w-20', type: 'calc', align: 'right', mandatory: false, visible: false },
+            { id: 'completion', label: 'Complétion (%)', width: 'w-24', type: 'input', align: 'right', mandatory: false, visible: false },
+            { id: 'bounce', label: 'Rebond (%)', width: 'w-20', type: 'input', align: 'right', mandatory: false, visible: false },
+            { id: 'actions', label: 'Actions', width: 'w-20', type: 'actions', align: 'center', mandatory: true, visible: true }
+        ];
+
+        let ROWS = [], GLOBAL_BUDGET = 50000, chartAlloc = null, chartRev = null;
+        let dragState = { active: false, type: null, rowId: null, startX: 0, startLeft: 0, startWidth: 0, trackWidth: 0 };
+        // Changed state to object for date tracking
+        let viewState = { 
+            view: 'year', 
+            date: new Date('2026-01-01') 
+        };
+        let currentViewStart = null;
+        let currentViewDuration = null;
+
+        let activeCommentRowId = null;
+        let currentObjective = 'all';
+
+        // --- NEW KPI CONFIGURATION LOGIC ---
+        const KPI_DEFINITIONS = {
+            'revenue': { label: 'CA Projeté', type: 'money', color: 'text-green-600', border: 'border-r border-gray-100' },
+            'roi': { label: 'ROI Global', type: 'x', color: 'text-bespoke-neutral-dark', border: 'border-r border-gray-100' },
+            'aov': { label: 'Panier Moyen', type: 'money', color: 'text-bespoke-neutral-dark', border: 'border-r border-gray-100' },
+            'active': { label: 'Leviers Actifs', type: 'int', color: 'text-bespoke-primary', border: '' },
+            'impressions': { label: 'Impressions', type: 'compact', color: 'text-gray-600', border: 'border-r border-gray-100 border-t pt-4' },
+            'traffic': { label: 'Trafic', type: 'compact', color: 'text-funnel-aware', border: 'border-r border-gray-100 border-t pt-4' },
+            'sales': { label: 'Ventes', type: 'compact', color: 'text-gray-700', border: 'border-r border-gray-100 border-t pt-4' },
+            'budget': { label: 'Budget Réel', type: 'money', color: 'text-bespoke-neutral-dark', border: 'border-t pt-4' },
+            'cpm': { label: 'CPM Global', type: 'money', color: 'text-gray-500', border: 'border-r border-gray-100 border-t pt-4' },
+            'cpc': { label: 'CPC Global', type: 'money', color: 'text-gray-500', border: 'border-r border-gray-100 border-t pt-4' },
+            'cpa': { label: 'CPA Global', type: 'money', color: 'text-gray-500', border: 'border-r border-gray-100 border-t pt-4' },
+            'convRate': { label: 'Taux Conv. Global', type: 'percent', color: 'text-gray-500', border: 'border-t pt-4' }
+        };
+
+        let activeKpis = ['revenue', 'roi', 'aov', 'active', 'impressions', 'traffic', 'sales', 'budget'];
+
+        // --- NEW OBJECTIVE MAPPING ---
+        const OBJECTIVES_MAPPING = {
+            'Notoriété': ['Awareness', 'Mass', 'Buzz'],
+            'Trafic': ['Consid.', 'Mass', 'Prescription'],
+            'Ventes': ['Conversion', 'BOFU'],
+            'Fidélisation': ['Loyalty', 'Prescription']
+        };
+
+        // --- PLATFORM TO CATEGORY MAPPING FOR NEW ROWS ---
+        const PLATFORM_CATEGORIES = {
+            'Meta Ads': { cat: "1. MÉDIAS DIGITAUX", funnel: "TOFU" },
+            'Google Ads': { cat: "1. MÉDIAS DIGITAUX", funnel: "Consid." },
+            'YouTube Ads': { cat: "1. MÉDIAS DIGITAUX", funnel: "Awareness" },
+            'TikTok Ads': { cat: "1. MÉDIAS DIGITAUX", funnel: "TOFU" },
+            'LinkedIn Ads': { cat: "1. MÉDIAS DIGITAUX", funnel: "Consid." },
+            'Pinterest Ads': { cat: "1. MÉDIAS DIGITAUX", funnel: "Awareness" },
+            'Amazon Ads': { cat: "2. MARKETPLACES", funnel: "Conversion" },
+            'TV': { cat: "3. MÉDIAS LINÉAIRES", funnel: "Mass" },
+            'Radio': { cat: "3. MÉDIAS LINÉAIRES", funnel: "Mass" },
+            'Influence': { cat: "4. HORS MÉDIA & BRANDING", funnel: "Prescription" },
+            'Twitch Ads': { cat: "4. HORS MÉDIA & BRANDING", funnel: "Buzz" },
+            'Street Marketing': { cat: "4. HORS MÉDIA & BRANDING", funnel: "Buzz" },
+            'CRM / Email': { cat: "4. HORS MÉDIA & BRANDING", funnel: "Loyalty" }
+        };
+
+        function init() {
+            ROWS = [];
+            const defStart = `2026-01-01`; const defEnd = `2026-12-31`;
+
+            Object.keys(BLUEPRINTS).forEach(k => {
+                const bp = BLUEPRINTS[k];
+                const id = Math.random().toString(36).substr(2, 9);
+                const pData = PLATFORMS_DATA[bp.platform];
+                
+                let cost = 4.5, ctr = 1.2, cr = 2.0, aov = 80, model = 'CPM';
+                if(bp.cat.includes('LINÉAIRE')) { cost = 5000; ctr = 0; cr = 0; model='Flat'; }
+                if(bp.platform === 'Influence') { cost = 1500; ctr = 2.5; cr = 1.5; model='Flat'; }
+
+                ROWS.push({
+                    id, type: k, ...bp, active: true,
+                    startDate: defStart, endDate: defEnd,
+                    platform: bp.platform, format: pData.formats[0], model: model, bidding: pData.bidding[0],
+                    budget: 0, unitCost: cost, ctr: ctr, cr: cr, aov: aov,
+                    grp: 0, reach: 0, freq: 0, completion: 0, bounce: 0,
+                    comments: [] 
+                });
+            });
+            buildKpiMenu();
+            renderLegend();
+            distributeBudget();
+            renderKpiGrid(); 
+            renderKpiConfigMenu(); 
+            renderTable();
+            renderGantt();
+            initDrag();
+            updateIOFinancials();
+        }
+
+        // --- OBJECTIVE LOGIC ---
+        function setObjective(obj) {
+            currentObjective = obj;
+            
+            document.querySelectorAll('.obj-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`obj-${obj}`);
+            if(activeBtn) activeBtn.classList.add('active');
+
+            const allowedFunnels = OBJECTIVES_MAPPING[obj];
+
+            ROWS.forEach(r => {
+                if(obj === 'all') {
+                    r.active = true;
+                } else {
+                    if (allowedFunnels && allowedFunnels.includes(r.funnel)) {
+                        r.active = true;
+                    } else {
+                        r.active = false;
+                    }
+                }
+            });
+
+            distributeBudget();
+            renderTable();
+            renderGantt();
+        }
+
+        // --- ADD ROW LOGIC ---
+        function openAddRowModal() {
+            const select = document.getElementById('newRowPlatformSelect');
+            select.innerHTML = '';
+            Object.keys(PLATFORMS_DATA).forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.innerText = p;
+                select.appendChild(opt);
+            });
+            document.getElementById('addRowModal').classList.add('open');
+        }
+
+        function confirmAddRow() {
+            const platform = document.getElementById('newRowPlatformSelect').value;
+            const pData = PLATFORMS_DATA[platform];
+            const catInfo = PLATFORM_CATEGORIES[platform] || { cat: "AUTRES", funnel: "Awareness" };
+            
+            const defStart = `2026-01-01`; const defEnd = `2026-12-31`;
+            const id = Math.random().toString(36).substr(2, 9);
+
+            let cost = 5, ctr = 1.0, cr = 1.0, aov = 50, model = pData.models[0];
+            if(catInfo.cat.includes('LINÉAIRE')) { cost = 5000; ctr = 0; cr = 0; model='Flat'; }
+
+            const newRow = {
+                id, 
+                type: 'custom_' + id, 
+                cat: catInfo.cat, 
+                name: platform, 
+                funnel: catInfo.funnel, 
+                platform: platform, 
+                weight: 5, 
+                active: true,
+                startDate: defStart, endDate: defEnd,
+                format: pData.formats[0], model: model, bidding: pData.bidding[0],
+                budget: 0, unitCost: cost, ctr: ctr, cr: cr, aov: aov,
+                grp: 0, reach: 0, freq: 0, completion: 0, bounce: 0,
+                comments: []
+            };
+
+            ROWS.push(newRow);
+            
+            distributeBudget();
+            renderTable();
+            renderGantt();
+            document.getElementById('addRowModal').classList.remove('open');
+        }
+
+        // --- NEW KPI FUNCTIONS ---
+        function renderKpiGrid() {
+            const grid = document.getElementById('kpiGrid');
+            grid.innerHTML = '';
+            
+            activeKpis.forEach((kpiId, index) => {
+                const def = KPI_DEFINITIONS[kpiId];
+                if(!def) return;
+                
+                const div = document.createElement('div');
+                div.className = `px-2 flex flex-col justify-center ${def.border}`; 
+                
+                div.innerHTML = `
+                    <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">${def.label}</div>
+                    <div id="kpi-val-${kpiId}" class="text-xl md:text-2xl font-bold ${def.color}">-</div>
+                `;
+                grid.appendChild(div);
+            });
+            updateDashboard();
+        }
+
+        function renderKpiConfigMenu() {
+            const container = document.getElementById('topKpiOptions');
+            container.innerHTML = '';
+            
+            Object.keys(KPI_DEFINITIONS).forEach(kpiId => {
+                const def = KPI_DEFINITIONS[kpiId];
+                const isActive = activeKpis.includes(kpiId);
+                const disabled = !isActive && activeKpis.length >= 8; 
+                
+                const div = document.createElement('div');
+                div.className = 'kpi-option';
+                if(disabled) div.style.opacity = '0.5';
+                
+                div.innerHTML = `
+                    <input type="checkbox" ${isActive ? 'checked' : ''} ${disabled ? 'disabled' : ''} onchange="toggleTopKpi('${kpiId}')">
+                    <span>${def.label}</span>
+                `;
+                container.appendChild(div);
+            });
+            document.getElementById('kpiCountBadge').innerText = `${activeKpis.length}/8`;
+        }
+
+        function toggleTopKpi(kpiId) {
+            const idx = activeKpis.indexOf(kpiId);
+            if (idx > -1) {
+                activeKpis.splice(idx, 1);
+            } else {
+                if (activeKpis.length < 8) {
+                    activeKpis.push(kpiId);
+                }
+            }
+            renderKpiGrid();
+            renderKpiConfigMenu();
+            document.getElementById('topKpiMenu').classList.add('open');
+        }
+
+        function toggleTopKpiMenu() {
+            document.getElementById('topKpiMenu').classList.toggle('open');
+        }
+
+        window.addEventListener('click', function(e){ 
+            if (!document.getElementById('kpiMenu').contains(e.target) && !e.target.closest('button')) { 
+                document.getElementById('kpiMenu').classList.remove('open'); 
+            } 
+            if (!document.getElementById('topKpiMenu').contains(e.target) && !e.target.closest('.top-kpi-config')) { 
+                document.getElementById('topKpiMenu').classList.remove('open'); 
+            }
+        });
+
+        // --- COMMENTS SYSTEM ---
+        function openCommentModal(rowId) {
+            activeCommentRowId = rowId;
+            const r = ROWS.find(x => x.id === rowId);
+            document.getElementById('modalTitle').innerText = `Commentaires - ${r.name} (${r.platform})`;
+            renderCommentList(r.comments);
+            document.getElementById('commentModal').classList.add('open');
+        }
+
+        function closeCommentModal() {
+            document.getElementById('commentModal').classList.remove('open');
+            activeCommentRowId = null;
+        }
+
+        function renderCommentList(comments) {
+            const body = document.getElementById('modalBody');
+            body.innerHTML = '';
+            if(!comments || comments.length === 0) {
+                body.innerHTML = '<div class="text-center text-gray-400 mt-10 italic">Aucun commentaire pour le moment.</div>';
+                return;
+            }
+            comments.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'comment-item';
+                const formattedText = c.text.replace(/(@\w+)/g, '<span class="mention-highlight">$1</span>');
+                
+                div.innerHTML = `
+                    <div class="comment-meta">
+                        <div class="flex gap-2 items-center"><span class="font-bold text-gray-600">Utilisateur</span> <span class="text-[9px] text-gray-400">${c.date}</span></div>
+                        <i class="fas fa-trash-alt delete-btn" onclick="deleteComment(${c.id})"></i>
+                    </div>
+                    <div class="comment-text">${formattedText}</div>
+                `;
+                body.appendChild(div);
+            });
+            body.scrollTop = body.scrollHeight;
+        }
+
+        function postComment() {
+            if(!activeCommentRowId) return;
+            const input = document.getElementById('newCommentInput');
+            const text = input.value.trim();
+            if(!text) return;
+
+            const r = ROWS.find(x => x.id === activeCommentRowId);
+            const now = new Date();
+            const dateStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            r.comments.push({ id: Date.now(), text: text, date: dateStr });
+            
+            input.value = '';
+            renderCommentList(r.comments);
+            renderGantt(); 
+        }
+
+        function deleteComment(commentId) {
+            if(!activeCommentRowId) return;
+            const r = ROWS.find(x => x.id === activeCommentRowId);
+            if(r) {
+                r.comments = r.comments.filter(c => c.id !== commentId);
+                renderCommentList(r.comments);
+                renderGantt(); 
+            }
+        }
+
+        // --- LEGEND & KPI ---
+        function renderLegend() {
+            const container = document.getElementById('legendContent'); container.innerHTML = '';
+            Object.entries(PLATFORMS_DATA).forEach(([name, data]) => {
+                const item = document.createElement('div'); item.className = 'legend-item';
+                item.innerHTML = `<div class="legend-dot" style="background-color:${data.color}"></div><span>${name}</span>`; container.appendChild(item);
+            });
+        }
+        function toggleLegend() { document.getElementById('legendFooter').classList.toggle('open'); }
+        function buildKpiMenu() {
+            const menu = document.getElementById('kpiOptions'); menu.innerHTML = '';
+            COLS.forEach(col => {
+                if(col.mandatory) return; 
+                const div = document.createElement('div'); div.className = 'kpi-option';
+                div.innerHTML = `<input type="checkbox" ${col.visible ? 'checked' : ''} onchange="toggleColumn('${col.id}')"> <span>${col.label}</span>`; menu.appendChild(div);
+            });
+        }
+        function toggleKpiMenu() { document.getElementById('kpiMenu').classList.toggle('open'); }
+        function toggleColumn(id) { const col = COLS.find(c => c.id === id); if(col) col.visible = !col.visible; renderTable(); }
+
+        // --- CORE ---
+        function distributeBudget() {
+            let totalW = ROWS.reduce((s, r) => s + (r.active ? r.weight : 0), 0);
+            ROWS.forEach(r => { r.budget = (r.active && totalW > 0) ? Math.round(GLOBAL_BUDGET * (r.weight / totalW)) : 0; });
+            updateDashboard();
+        }
+
+     function calculateRow(r) {
+            let imp = 0, traf = 0, sales = 0; 
+            const cost = parseFloat(r.unitCost) || 1;
+
+            if (r.model === 'CPM') { 
+                imp = (r.budget / cost) * 1000; 
+                traf = imp * ((r.ctr||0) / 100); 
+            }
+            else if (r.model === 'CPC') { 
+                traf = r.budget / cost; 
+                imp = traf / ((r.ctr||1) / 100 || 0.01); 
+            }
+            else if (r.model === 'CPA' || r.model === 'CPL') { 
+                sales = r.budget / cost; 
+                traf = sales / ((r.cr||1) / 100 || 0.01); 
+                imp = traf / ((r.ctr||1) / 100 || 0.01); 
+            }
+            else if (r.model === 'CPV') { 
+                imp = r.budget / cost; 
+                traf = imp * ((r.ctr||0)/100); 
+            }
+            else if (r.model === 'Flat') { imp = 0; traf = 0; }
+            else if (r.model === 'GRP') { imp = r.budget / cost; traf = 0; }
+
+            const ratio = getSaturationRatio(r.budget);
+
+            if (r.model !== 'Flat') {
+                imp = imp * ratio;
+                traf = traf * ratio;
+                sales = (r.model === 'CPA' || r.model === 'CPL') ? sales * ratio : traf * ((r.cr||0) / 100);
+            }
+
+            const rev = sales * (r.aov || 0); 
+            const roi = r.budget > 0 ? rev / r.budget : 0;
+
+            const cpm = imp > 0 ? (r.budget / imp) * 1000 : 0; 
+            const cpc = traf > 0 ? r.budget / traf : 0; 
+            const cpa = sales > 0 ? r.budget / sales : 0; 
+            const cost_grp = r.grp > 0 ? r.budget / r.grp : 0;
+
+            return { impressions: imp, traffic: traf, sales, revenue: rev, roi, cpm, cpc, cpa, cpl: cpa, cost_grp };
+        }
+
+        function renderTable() {
+            const thead = document.getElementById('tableHead'); const tbody = document.getElementById('tableBody'); const tfoot = document.getElementById('tableFoot');
+            let h = '<tr>'; COLS.forEach(c => { if(c.visible) h += `<th class="table-header-cell ${c.align === 'center' ? 'text-center' : c.align === 'right' ? 'text-right' : 'text-left'} ${c.width}">${c.label}</th>`; }); thead.innerHTML = h + '</tr>';
+            tbody.innerHTML = '';
+            
+            // GROUPING LOGIC
+            const cats = {}; 
+            ROWS.forEach(r => { if (!cats[r.cat]) cats[r.cat] = []; cats[r.cat].push(r); });
+            
+            let totBud = 0, totRev = 0;
+            // Iterate in a fixed order if we want, or just Object.entries
+            for (const [cat, items] of Object.entries(cats)) {
+                const visibleCount = COLS.filter(c => c.visible).length; tbody.innerHTML += `<tr><td colspan="${visibleCount}" class="group-header">${cat}</td></tr>`;
+                items.forEach(r => {
+                    const tr = document.createElement('tr'); tr.className = `row-item bg-white ${!r.active ? 'row-disabled' : ''}`;
+                    const res = calculateRow(r); if (r.active) { totBud += r.budget; totRev += res.revenue; }
+                    const pColor = PLATFORMS_DATA[r.platform]?.color || '#333';
+                    let html = '';
+                    COLS.forEach(c => {
+                        if(!c.visible) return;
+                        let content = '';
+                        if (c.type === 'check') content = `<label class="custom-checkbox relative flex justify-center items-center cursor-pointer"><input type="checkbox" class="opacity-0 absolute w-full h-full z-10" ${r.active?'checked':''} onclick="toggleActive('${r.id}')"><div class="w-4 h-4 border-2 border-gray-400 rounded relative transition-colors" style="color:${pColor}"></div></label>`;
+                        else if (c.type === 'text') content = `<div class="flex items-center gap-2 font-bold text-bespoke-neutral-dark"><div class="w-2 h-2 rounded-full" style="background:${pColor}"></div>${r.name}</div>`;
+                        else if (c.type === 'badge') content = `<span class="badge-funnel" style="background:${FUNNELS[r.funnel] || '#777'}">${r.funnel}</span>`;
+                        else if (c.type === 'dates') content = `<div class="flex items-center gap-1 justify-center"><input type="date" class="input-date" value="${r.startDate}" onchange="updateRow('${r.id}', 'startDate', this.value)"><span class="text-gray-300">-</span><input type="date" class="input-date" value="${r.endDate}" onchange="updateRow('${r.id}', 'endDate', this.value)"></div>`;
+                        else if (c.id === 'platform') content = `<select class="select-clean" onchange="updateRow('${r.id}', 'platform', this.value)">${Object.keys(PLATFORMS_DATA).map(p => `<option value="${p}" ${r.platform===p?'selected':''}>${p}</option>`).join('')}</select>`;
+                        else if (c.id === 'format') content = `<select class="select-clean" onchange="updateRow('${r.id}', 'format', this.value)">${PLATFORMS_DATA[r.platform].formats.map(f => `<option value="${f}" ${r.format===f?'selected':''}>${f}</option>`).join('')}</select>`;
+                        else if (c.id === 'bidding') content = `<select class="select-clean" onchange="updateRow('${r.id}', 'bidding', this.value)">${PLATFORMS_DATA[r.platform].bidding.map(b => `<option value="${b}" ${r.bidding===b?'selected':''}>${b}</option>`).join('')}</select>`;
+                        else if (c.id === 'model') content = `<select class="select-clean w-20" onchange="updateRow('${r.id}', 'model', this.value)">${ALL_MODELS.map(m => `<option value="${m}" ${r.model===m?'selected':''}>${m}</option>`).join('')}</select>`;
+                        else if (c.type === 'money') content = `<input class="input-clean input-budget" value="${r.budget}" onchange="updateRow('${r.id}','budget',this.value)">`;
+                        else if (c.type === 'input') content = `<input class="input-clean text-right" value="${r[c.id] || 0}" step="0.01" onchange="updateRow('${r.id}','${c.id}',this.value)">`;
+                        else if (c.type === 'calc') { 
+                            let val = res[c.id]; 
+                            if(isNaN(val) || !isFinite(val)) val = 0; 
+                            if(c.id==='roi') content=`<span class="font-bold text-bespoke-primary">${val.toFixed(2)}x</span>`; 
+                            else if(c.id==='revenue'||c.id==='cost_grp'||c.id==='cpa'||c.id==='cpl'||c.id==='cpm'||c.id==='cpc') content=`<span class="font-bold text-gray-700">${formatMoney(val)}</span>`; 
+                            else content=formatCompact(val); 
+                        }
+                        else if (c.type === 'actions') {
+                            content = `<div class="flex justify-center gap-2"><i class="fas fa-copy text-gray-400 hover:text-bespoke-primary cursor-pointer transition-colors" onclick="duplicateRow('${r.id}')"></i><i class="fas fa-trash text-gray-400 hover:text-red-500 cursor-pointer transition-colors" onclick="deleteRow('${r.id}')"></i></div>`;
+                        }
+                        html += `<td class="px-2 ${c.align === 'center' ? 'text-center' : c.align === 'right' ? 'text-right' : 'text-left'}">${content}</td>`;
+                    });
+                    tr.innerHTML = html; tbody.appendChild(tr);
+                });
+            }
+            let f = ''; COLS.forEach(c => { if(!c.visible) return; let v = ''; if(c.id === 'name') v = 'TOTAL'; if(c.id === 'budget') v = formatMoney(totBud); if(c.id === 'revenue') v = formatMoney(totRev); f += `<td>${v}</td>`; }); tfoot.innerHTML = f;
+            renderCharts(); renderDetails();
+        }
+
+        // --- CHART AGGREGATION LOGIC ---
+        function renderCharts() {
+            const ctxA = document.getElementById('allocChart');
+            const ctxR = document.getElementById('revChart');
+            if(!ctxA || !ctxR) return;
+
+            const activeRows = ROWS.filter(r => r.active && r.budget > 0);
+            const aggData = {};
+            activeRows.forEach(r => {
+                if(!aggData[r.platform]) {
+                    aggData[r.platform] = { budget: 0, revenue: 0, color: PLATFORMS_DATA[r.platform]?.color || '#333' };
+                }
+                const res = calculateRow(r);
+                aggData[r.platform].budget += r.budget;
+                aggData[r.platform].revenue += res.revenue;
+            });
+
+            const labels = Object.keys(aggData);
+            const budgetData = labels.map(l => aggData[l].budget);
+            const revenueData = labels.map(l => aggData[l].revenue);
+            const bgColors = labels.map(l => aggData[l].color);
+
+            if(chartAlloc) chartAlloc.destroy();
+            chartAlloc = new Chart(ctxA, {
+                type: 'doughnut',
+                data: { labels: labels, datasets: [{ data: budgetData, backgroundColor: bgColors, borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 10} } } } }
+            });
+
+            if(chartRev) chartRev.destroy();
+            chartRev = new Chart(ctxR, {
+                type: 'bar',
+                data: { labels: labels, datasets: [{ label: 'CA', data: revenueData, backgroundColor: bgColors }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
+            });
+        }
+
+        // --- INTERACTIONS ---
+        function updateRow(id, field, value) { 
+            const r = ROWS.find(x => x.id === id); 
+            if (!r) return; 
+            
+            if (['budget','unitCost','ctr','cr','aov','grp','reach','freq','completion','bounce'].includes(field)) { 
+                r[field] = parseFloat(value) || 0; 
+                // Recalculate global budget only if budget changed
+                if (field === 'budget') { 
+                    GLOBAL_BUDGET = ROWS.reduce((s, row) => s + (row.active ? row.budget : 0), 0); 
+                    document.getElementById('globalBudgetSlider').value = GLOBAL_BUDGET; 
+                } 
+            } else { 
+                r[field] = value; 
+            } 
+            
+            if (field === 'platform') { 
+                const pData = PLATFORMS_DATA[value]; 
+                r.format = pData.formats[0]; 
+                r.bidding = pData.bidding[0]; 
+            } 
+            
+            if (field === 'platform') renderTable(); 
+            else if (['startDate','endDate'].includes(field)) renderGantt(); 
+            else renderTable(); 
+            
+            updateDashboard(); 
+        }
+
+        function toggleActive(id) { const r = ROWS.find(x => x.id === id); if(r) { r.active = !r.active; distributeBudget(); renderTable(); renderGantt(); } }
+        function duplicateRow(id) { const idx = ROWS.findIndex(r => r.id === id); if(idx===-1)return; const src = ROWS[idx]; const newId = Math.random().toString(36).substr(2, 9); const newRow = JSON.parse(JSON.stringify(src)); newRow.id = newId; ROWS.splice(idx + 1, 0, newRow); distributeBudget(); renderTable(); renderGantt(); }
+        function deleteRow(id) { const idx = ROWS.findIndex(r => r.id === id); if(idx > -1) { ROWS.splice(idx, 1); distributeBudget(); renderTable(); renderGantt(); } }
+        function initDrag() { document.addEventListener('mousemove', handleDragMove); document.addEventListener('mouseup', handleDragEnd); }
+        function startDrag(e, type, rowId) { e.preventDefault(); e.stopPropagation(); const bar = e.target.closest('.gantt-bar') || e.target; const track = bar.parentElement; dragState = { active: true, type: type, rowId: rowId, startX: e.clientX, startLeft: bar.offsetLeft, startWidth: bar.offsetWidth, trackWidth: track.scrollWidth, barEl: bar }; }
+        function handleDragMove(e) { if (!dragState.active) return; const dx = e.clientX - dragState.startX; let newLeft = dragState.startLeft, newWidth = dragState.startWidth; if (dragState.type === 'move') { newLeft += dx; if (newLeft < 0) newLeft = 0; if (newLeft + newWidth > dragState.trackWidth) newLeft = dragState.trackWidth - newWidth; dragState.barEl.style.left = newLeft + 'px'; } else if (dragState.type === 'left') { newLeft += dx; newWidth -= dx; if (newWidth < 10) return; if (newLeft < 0) return; dragState.barEl.style.left = newLeft + 'px'; dragState.barEl.style.width = newWidth + 'px'; } else if (dragState.type === 'right') { newWidth += dx; if (newWidth < 10) return; if (dragState.startLeft + newWidth > dragState.trackWidth) return; dragState.barEl.style.width = newWidth + 'px'; } }
+        
+        function handleDragEnd(e) { 
+            if (!dragState.active) return; 
+            const r = ROWS.find(x => x.id === dragState.rowId); 
+            const currentLeft = parseFloat(dragState.barEl.style.left);
+            const currentWidth = parseFloat(dragState.barEl.style.width);
+            const trackWidth = dragState.trackWidth; 
+            
+            // KEY FIX: Use the DYNAMIC viewStart and totalMs, not hardcoded Year
+            // This preserves drag logic mechanics but updates the data context
+            const viewStart = currentViewStart || new Date(new Date().getFullYear(), 0, 1);
+            const totalMs = currentViewDuration || (1000 * 60 * 60 * 24 * 365);
+
+            const startPct = currentLeft / trackWidth;
+            const widthPct = currentWidth / trackWidth; 
+            
+            const newStartMs = viewStart.getTime() + (totalMs * startPct); 
+            const newEndMs = newStartMs + (totalMs * widthPct); 
+            
+            r.startDate = new Date(newStartMs).toISOString().split('T')[0]; 
+            r.endDate = new Date(newEndMs).toISOString().split('T')[0]; 
+            
+            dragState.active = false; 
+            renderTable(); 
+            renderGantt(); 
+        }
+        
+        // --- FIXED ZOOM LOGIC & NAVIGATION ---
+        function setZoom(z) {
+            viewState.view = z;
+            document.querySelectorAll('.zoom-btn').forEach(b => {
+                if(b.id === `btn${z.charAt(0).toUpperCase() + z.slice(1)}`) b.classList.add('active');
+                else b.classList.remove('active');
+            });
+            renderGantt();
+        }
+
+        function shiftTime(dir) {
+            const d = new Date(viewState.date);
+            if(viewState.view === 'year') {
+                d.setFullYear(d.getFullYear() + dir);
+            } else if (viewState.view === 'month') {
+                d.setMonth(d.getMonth() + dir);
+            } else if (viewState.view === 'week') {
+                d.setDate(d.getDate() + (dir * 7));
+            }
+            viewState.date = d;
+            renderGantt();
+        }
+
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+            return weekNo;
+        }
+
+        function renderGantt() { 
+            const header = document.getElementById('ganttHeaderMonths'); 
+            const body = document.getElementById('ganttBody'); 
+            const titleEl = document.getElementById('ganttTitle');
+            header.innerHTML = ''; 
+            body.innerHTML = ''; 
+            
+            let container = document.querySelector('.table-container'); 
+            let availWidth = container ? container.offsetWidth : 1200;
+            let colWidthPx = 0;
+            let columns = [];
+            let subDivisions = 1;
+            
+            // 1. Calculate View Range
+            const focusDate = new Date(viewState.date);
+            let viewStart, viewEnd;
+
+            if (viewState.view === 'year') {
+                const y = focusDate.getFullYear();
+                viewStart = new Date(y, 0, 1);
+                viewEnd = new Date(y, 11, 31, 23, 59, 59);
+                titleEl.innerText = y;
+                columns = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+                colWidthPx = (availWidth - 260) / 12; 
+            } 
+            else if (viewState.view === 'month') {
+                const y = focusDate.getFullYear();
+                const m = focusDate.getMonth();
+                viewStart = new Date(y, m, 1);
+                viewEnd = new Date(y, m + 1, 0, 23, 59, 59); // Last day of month
+                titleEl.innerText = focusDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+                
+                // Calculate weeks in month
+                let d = new Date(viewStart);
+                while(d <= viewEnd) {
+                    columns.push("Sem " + getWeekNumber(d));
+                    d.setDate(d.getDate() + 7);
+                }
+                colWidthPx = (availWidth - 260) / columns.length;
+            } 
+            else if (viewState.view === 'week') {
+                const day = focusDate.getDay() || 7; // Get current day number, converting Sun(0) to 7
+                if(day !== 1) focusDate.setHours(-24 * (day - 1)); // Set to previous Monday
+                
+                viewStart = new Date(focusDate);
+                viewStart.setHours(0,0,0,0);
+                viewEnd = new Date(viewStart);
+                viewEnd.setDate(viewEnd.getDate() + 6);
+                viewEnd.setHours(23,59,59,999);
+                
+                const weekNum = getWeekNumber(viewStart);
+                titleEl.innerText = `Semaine ${weekNum} - ${viewStart.getFullYear()}`;
+                
+                columns = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+                colWidthPx = (availWidth - 260) / 7;
+                subDivisions = 1;
+            }
+
+            // GLOBAL STATE UPDATE FOR DRAG LOGIC
+            currentViewStart = viewStart;
+            currentViewDuration = viewEnd - viewStart;
+
+            const totalTimelinePx = colWidthPx * columns.length;
+
+            // Render Header
+            columns.forEach(label => { 
+                const cell = document.createElement('div'); cell.className = 'gantt-time-cell'; 
+                cell.innerText = label; cell.style.width = colWidthPx + 'px'; header.appendChild(cell); 
+            }); 
+            
+            document.getElementById('ganttHeaderRow').style.minWidth = (240 + totalTimelinePx) + 'px';
+            
+            // Render Rows
+            ROWS.forEach(r => { 
+                if(!r.active) return; 
+                const rowDiv = document.createElement('div'); rowDiv.className = 'gantt-row'; 
+                rowDiv.style.minWidth = (240 + totalTimelinePx) + 'px';
+
+                const hasComments = r.comments && r.comments.length > 0;
+                rowDiv.innerHTML = `
+                    <div class="gantt-label-col">
+                        <div class="flex flex-col overflow-hidden">
+                            <span class="truncate font-bold">${r.name}</span>
+                            <span class="text-[9px] text-gray-400 ml-1 truncate">(${r.platform})</span>
+                        </div>
+                        <i class="fas fa-comment-alt comment-icon ${hasComments ? 'has-comments' : ''}" onclick="openCommentModal('${r.id}')"></i>
+                    </div>
+                `; 
+                const track = document.createElement('div'); track.className = 'gantt-track-area'; 
+                track.style.width = totalTimelinePx + 'px';
+
+                // Grid lines
+                const bg = document.createElement('div'); bg.className = 'gantt-grid-lines'; 
+                bg.style.width = totalTimelinePx + 'px';
+                columns.forEach(() => { 
+                    const l = document.createElement('div'); l.className = 'gantt-line'; l.style.width = colWidthPx + 'px';
+                    bg.appendChild(l); 
+                }); 
+                track.appendChild(bg); 
+                
+                // BAR CALCULATION
+                const startDate = new Date(r.startDate + 'T00:00:00'); 
+                const endDate = new Date(new Date(r.endDate + 'T00:00:00').getTime() + 86400000); 
+                
+                // Check if visible
+                if (endDate < viewStart || startDate > viewEnd) {
+                    // Not in view
+                } else {
+                    // Clamping logic for display
+                    const visibleStart = startDate < viewStart ? viewStart : startDate;
+                    const visibleEnd = endDate > viewEnd ? new Date(viewEnd.getTime() + 1) : endDate; // +1 to capture full end
+                    
+                    const offsetMs = visibleStart - viewStart;
+                    const durationMs = visibleEnd - visibleStart;
+                    
+                    if (durationMs > 0) {
+                        const leftPx = (offsetMs / currentViewDuration) * totalTimelinePx;
+                        const widthPx = (durationMs / currentViewDuration) * totalTimelinePx;
+                        
+                        const durationDays = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
+                        let durText = durationDays < 7 ? durationDays + " j" : durationDays < 60 ? Math.round(durationDays / 7) + " sem." : (durationDays / 30).toFixed(1) + " mois";
+
+                        const bar = document.createElement('div'); bar.className = 'gantt-bar'; 
+                        bar.style.backgroundColor = PLATFORMS_DATA[r.platform]?.color || '#333'; 
+                        bar.style.left = leftPx + 'px'; 
+                        bar.style.width = widthPx + 'px'; 
+                        
+                        // Indicate clipping
+                        if(startDate < viewStart) bar.style.borderRadius = "0 4px 4px 0";
+                        if(endDate > viewEnd) bar.style.borderRadius = "4px 0 0 4px";
+                        if(startDate < viewStart && endDate > viewEnd) bar.style.borderRadius = "0";
+
+                        bar.innerHTML = `<span class="bar-title">${r.funnel}</span><span class="bar-subtitle">${r.platform} (${durText})</span>`;
+                        
+                        // Only add handles if edge is visible (User UX improvement, logic remains same)
+                        if(startDate >= viewStart) {
+                            const hLeft = document.createElement('div'); hLeft.className = 'resize-handle left'; hLeft.onmousedown = (e) => startDrag(e, 'left', r.id); 
+                            bar.appendChild(hLeft);
+                        }
+                        if(endDate <= viewEnd) {
+                            const hRight = document.createElement('div'); hRight.className = 'resize-handle right'; hRight.onmousedown = (e) => startDrag(e, 'right', r.id); 
+                            bar.appendChild(hRight);
+                        }
+                        
+                        bar.onmousedown = (e) => { if(e.target === bar) startDrag(e, 'move', r.id); }; 
+                        track.appendChild(bar);
+                    }
+                }
+                
+                rowDiv.appendChild(track); body.appendChild(rowDiv); 
+            }); 
+        }
+
+        function exportGantt() {
+            const gantt = document.getElementById('ganttContainer');
+            // Ensure full width is captured
+            const originalOverflow = gantt.style.overflow;
+            gantt.style.overflow = 'visible';
+            
+            html2canvas(gantt, { scale: 2 }).then(canvas => {
+                gantt.style.overflow = originalOverflow;
+                const link = document.createElement('a');
+                link.download = `MediaPlan_Gantt_${new Date().toISOString().slice(0,10)}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+
+        function updateDashboard() { 
+            let totBud = 0, totRev = 0, totSales = 0, totImps = 0, totTraffic = 0, activeC = 0; 
+            ROWS.forEach(r => { 
+                if(r.active) { 
+                    const res = calculateRow(r); 
+                    totBud += r.budget; 
+                    totRev += res.revenue; 
+                    totSales += res.sales; 
+                    totImps += res.impressions; 
+                    totTraffic += res.traffic; 
+                    activeC++; 
+                } 
+            }); 
+            
+            const globalROI = totBud > 0 ? (totRev / totBud) : 0;
+            const globalAOV = Math.round(totSales > 0 ? totRev/totSales : 0);
+            
+            const globalCPM = totImps > 0 ? (totBud / totImps) * 1000 : 0;
+            const globalCPC = totTraffic > 0 ? (totBud / totTraffic) : 0;
+            const globalCPA = totSales > 0 ? (totBud / totSales) : 0;
+            const globalConvRate = totTraffic > 0 ? (totSales / totTraffic) * 100 : 0;
+
+            document.getElementById('sliderValDisplay').textContent = formatMoney(totBud); 
+            
+            const dataMap = {
+                'revenue': formatMoney(totRev),
+                'roi': globalROI.toFixed(2) + 'x',
+                'aov': formatMoney(globalAOV),
+                'active': activeC,
+                'impressions': formatCompact(totImps),
+                'traffic': formatCompact(totTraffic),
+                'sales': Math.round(totSales),
+                'budget': formatMoney(totBud),
+                'cpm': formatMoney(globalCPM),
+                'cpc': formatMoney(globalCPC),
+                'cpa': formatMoney(globalCPA),
+                'convRate': globalConvRate.toFixed(2) + '%'
+            };
+
+            activeKpis.forEach(kpiId => {
+                const el = document.getElementById(`kpi-val-${kpiId}`);
+                if (el && dataMap[kpiId] !== undefined) {
+                    el.textContent = dataMap[kpiId];
+                }
+            });
+            
+            updateIOFinancials();
+        }
+        
+        function renderDetails() { 
+            const grid = document.getElementById('detailsGrid'); grid.innerHTML = ''; 
+            ROWS.forEach(r => { if(!r.active || r.budget === 0) return; 
+                const col = PLATFORMS_DATA[r.platform]?.color || '#333'; 
+                grid.innerHTML += `<div class="detail-card rounded shadow-sm p-4 flex flex-col justify-between h-28" style="border-left-color:${col}"><div class="flex justify-between items-start"><span class="font-bold text-gray-700 text-xs">${r.name}</span><span class="text-[9px] text-white px-2 rounded" style="background:${col}">${r.funnel}</span></div><div class="text-[10px] text-gray-500">${r.platform} - ${r.format}</div><div class="text-right font-bold text-gray-800">${formatMoney(r.budget)}</div></div>`; 
+            }); 
+        }
+        
+        function formatMoney(v) { return Math.round(v).toLocaleString('fr-FR').replace(/\s/g, ' ') + ' €'; }
+        function formatCompact(v) { return Intl.NumberFormat('en-US', {notation: "compact", maximumFractionDigits: 1}).format(v).replace('.',',') + (v>999?' k':''); }
+        
+        function resetData() { 
+            GLOBAL_BUDGET = 0;
+            document.getElementById('globalBudgetSlider').value = 0;
+            ROWS.forEach(r => { r.budget = 0; });
+            updateDashboard();
+            renderTable();
+            renderGantt();
+            renderDetails();
+            renderCharts();
+        }
+
+        document.getElementById('globalBudgetSlider').addEventListener('input', (e) => { GLOBAL_BUDGET = parseInt(e.target.value); distributeBudget(); renderTable(); });
+        
+        // --- IO FUNCTIONS ---
+        function updateIOFinancials() {
+            let planBudget = 0;
+            let minDate = null;
+            let maxDate = null;
+
+            ROWS.forEach(r => {
+                if(r.active && r.budget > 0) {
+                    planBudget += r.budget;
+                    
+                    if(!minDate || r.startDate < minDate) minDate = r.startDate;
+                    if(!maxDate || r.endDate > maxDate) maxDate = r.endDate;
+                }
+            });
+
+            document.getElementById('ioMediaTotal').innerText = formatMoney(planBudget);
+            document.getElementById('ioStartDate').value = minDate || "";
+            document.getElementById('ioEndDate').value = maxDate || "";
+
+            const feePct = parseFloat(document.getElementById('ioFeesPct').value) || 0;
+            const discount = parseFloat(document.getElementById('ioDiscount').value) || 0;
+            const hasVat = document.getElementById('ioVatCheck').checked;
+
+            const fees = planBudget * (feePct / 100);
+            const subTotal = planBudget + fees - discount;
+            const vat = hasVat ? subTotal * 0.20 : 0;
+            const total = subTotal + vat;
+
+            document.getElementById('ioGrandTotal').innerText = formatMoney(total);
+        }
+
+        async function generateIOPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const primColor = [112, 94, 242]; 
+            
+            doc.setFontSize(22);
+            doc.setTextColor(...primColor);
+            doc.setFont("helvetica", "bold");
+            doc.text("BESPOKE", 14, 20); 
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.setFont("helvetica", "normal");
+            doc.text("ORDRE D'INSERTION PUBLICITAIRE", 14, 26);
+            
+            doc.setFontSize(9);
+            doc.text(`Date: ${new Date().toLocaleDateString()}`, 160, 20);
+            doc.text(`Réf: OI-${Math.floor(Math.random()*10000)}`, 160, 25);
+
+            const agName = document.getElementById('ioAgencyName').value;
+            const agAddr = document.getElementById('ioAgencyAddress').value;
+            const agEmail = document.getElementById('ioAgencyEmail').value;
+            const clName = document.getElementById('ioClientName').value;
+            const clAddr = document.getElementById('ioClientAddress').value;
+            const cpName = document.getElementById('ioCampaignName').value;
+
+            doc.setFillColor(248, 250, 252);
+            doc.roundedRect(14, 35, 85, 35, 2, 2, 'F');
+            doc.setFontSize(8); doc.setTextColor(150); doc.text("ÉMETTEUR (AGENCE)", 18, 42);
+            doc.setFontSize(10); doc.setTextColor(0); doc.setFont("helvetica", "bold"); doc.text(agName, 18, 48);
+            doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.text(agAddr, 18, 54); doc.text(agEmail, 18, 60);
+
+            doc.setFillColor(248, 250, 252);
+            doc.roundedRect(110, 35, 85, 35, 2, 2, 'F');
+            doc.setFontSize(8); doc.setTextColor(150); doc.text("POUR LE COMPTE DE (ANNONCEUR)", 114, 42);
+            doc.setFontSize(10); doc.setTextColor(0); doc.setFont("helvetica", "bold"); doc.text(clName, 114, 48);
+            doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.text(clAddr, 114, 54);
+
+            doc.setFontSize(12); doc.setTextColor(...primColor); doc.setFont("helvetica", "bold");
+            doc.text(`CAMPAGNE : ${cpName}`, 14, 80);
+
+            const tableBody = [];
+            ROWS.forEach(r => {
+                if(r.active && r.budget > 0) {
+                    const res = calculateRow(r);
+                    tableBody.push([
+                        r.platform,
+                        r.format,
+                        `${r.startDate}\n${r.endDate}`,
+                        r.model,
+                        formatMoney(r.budget),
+                        formatCompact(res.impressions)
+                    ]);
+                }
+            });
+
+            doc.autoTable({
+                startY: 85,
+                head: [['Plateforme', 'Format', 'Période', 'Modèle', 'Budget Net', 'Est. Imps']],
+                body: tableBody,
+                theme: 'grid',
+                headStyles: { fillColor: primColor, textColor: 255, fontSize: 8, fontStyle: 'bold' },
+                bodyStyles: { fontSize: 8, cellPadding: 3 },
+                columnStyles: {
+                    4: { halign: 'right', fontStyle: 'bold' },
+                    5: { halign: 'right' }
+                }
+            });
+
+            let finalY = doc.lastAutoTable.finalY + 10;
+            
+            if(finalY > 250) { doc.addPage(); finalY = 20; }
+
+            const legalText = document.getElementById('ioLegal').value;
+            doc.setFontSize(8); doc.setTextColor(100);
+            doc.text("CONDITIONS PARTICULIÈRES :", 14, finalY);
+            const splitLegal = doc.splitTextToSize(legalText, 100);
+            doc.text(splitLegal, 14, finalY + 5);
+
+            const totalX = 130;
+            doc.setFontSize(9); doc.setTextColor(0);
+            
+            doc.text("Total Média Net :", totalX, finalY);
+            doc.text(document.getElementById('ioMediaTotal').innerText, 195, finalY, { align: 'right' });
+            
+            doc.text(`Frais Tech (${document.getElementById('ioFeesPct').value}%) :`, totalX, finalY + 6);
+            doc.text(`Remise : -${document.getElementById('ioDiscount').value} €`, totalX, finalY + 12);
+            
+            doc.setFont("helvetica", "bold");
+            doc.text("TOTAL À PAYER :", totalX, finalY + 22);
+            doc.setTextColor(...primColor); doc.setFontSize(11);
+            doc.text(document.getElementById('ioGrandTotal').innerText, 195, finalY + 22, { align: 'right' });
+
+            doc.setDrawColor(200);
+            doc.line(14, 270, 90, 270);
+            doc.line(120, 270, 195, 270);
+            doc.setFontSize(8); doc.setTextColor(150); doc.setFont("helvetica", "normal");
+            doc.text("Date et Signature Agence", 14, 275);
+            doc.text("Date et Signature Client (Bon pour accord)", 120, 275);
+
+            doc.save(`IO_${cpName.replace(/\s/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`);
+        }
+
+        // SIMULATION LOGIC (Rule-based Heuristic)
+        function toggleTag(el) {
+                el.classList.toggle('bg-bespoke-primary');
+                el.classList.toggle('text-white');
+                el.classList.toggle('bg-gray-50');
+                el.classList.toggle('text-bespoke-primary');
+                el.classList.toggle('border-bespoke-primary');
+            }
+
+            function toggleSimulationPanel() {
+                const content = document.getElementById('simulationContent');
+                content.classList.toggle('hidden');
+            }
+
+            // SIMULATION LOGIC (Rule-based Heuristic)
+            function runSimulation() {
+                const sector = document.getElementById('simSector').value;
+                const kpi = document.getElementById('simKpi').value;
+                const lastRev = parseFloat(document.getElementById('simLastRev').value) || 0;
+                const lastBud = parseFloat(document.getElementById('simLastBudget').value) || 1;
+                
+                const histRoas = lastRev / lastBud;
+
+                document.getElementById('simOverlay').style.display = 'none';
+
+                let strategies = [];
+                let growthFactor = 1.1; 
+                let recoBudgetMultiplier = 1;
+
+                if(sector === 'retail') {
+                    strategies.push("Le secteur Retail sur-performe sur le format Shopping et Social Commerce.");
+                    growthFactor = 1.15;
+                } else if (sector === 'luxury') {
+                    strategies.push("Le secteur Luxe nécessite un mix 60% Branding / 40% Perf.");
+                } else if (sector === 'b2b') {
+                    strategies.push("Focus Lead Gen : Augmenter la part LinkedIn & Search.");
+                }
+
+                if(kpi === 'roi') {
+                    if(histRoas > 4) {
+                        strategies.push(`ROAS Historique solide (${histRoas.toFixed(1)}x). Recommandation : SCALING agressif.`);
+                        recoBudgetMultiplier = 1.2;
+                    } else {
+                        strategies.push("ROAS sous tension. Recommandation : Consolidation sur les leviers 'Bas de Funnel'.");
+                    }
+                } else if (kpi === 'awareness') {
+                    strategies.push("Objectif Notoriété : Basculement du budget vers Vidéo & Social Haut de Funnel.");
+                }
+
+                const tbody = document.getElementById('simTableBody');
+                tbody.innerHTML = '';
+
+                let totalCurrentBudget = ROWS.reduce((sum, r) => sum + (r.active ? r.budget : 0), 0);
+                
+                let platformAgg = {};
+                ROWS.forEach(r => {
+                    if(!r.active) return;
+                    if(!platformAgg[r.platform]) platformAgg[r.platform] = { current: 0, name: r.platform, cat: r.cat };
+                    platformAgg[r.platform].current += r.budget;
+                });
+
+                if(sector === 'retail' && !platformAgg['TikTok Ads']) {
+                    platformAgg['TikTok Ads'] = { current: 0, name: 'TikTok Ads', cat: 'OPPORTUNITÉ', isNew: true };
+                }
+                if(sector === 'b2b' && !platformAgg['LinkedIn Ads']) {
+                    platformAgg['LinkedIn Ads'] = { current: 0, name: 'LinkedIn Ads', cat: 'OPPORTUNITÉ', isNew: true };
+                }
+
+                let totalNewBudget = 0;
+
+                Object.values(platformAgg).forEach(p => {
+                    let recoAmount = p.current;
+                    let action = "Maintien";
+                    let reason = "Performance stable attendue.";
+                    let trendClass = "text-gray-500";
+                    let icon = "fa-minus";
+
+                    if((p.name.includes('Google') || p.name.includes('Meta')) && kpi === 'roi') {
+                        recoAmount = p.current * 1.15;
+                        action = "Augmenter";
+                        reason = "Levier core-business pour le ROI.";
+                        trendClass = "text-green-600";
+                        icon = "fa-arrow-up";
+                    }
+                    else if((p.name.includes('YouTube') || p.name.includes('TV') || p.name.includes('Twitch')) && kpi === 'awareness') {
+                        recoAmount = p.current * 1.25;
+                        action = "Booster";
+                        reason = "Fort impact mémoriel requis.";
+                        trendClass = "text-green-600";
+                        icon = "fa-rocket";
+                    }
+                    else if((p.name.includes('TV') || p.name.includes('Radio')) && kpi === 'roi') {
+                        recoAmount = p.current * 0.8;
+                        action = "Réduire";
+                        reason = "Coût contact élevé, attribution difficile.";
+                        trendClass = "text-red-500";
+                        icon = "fa-arrow-down";
+                    }
+                    else if(p.isNew) {
+                        recoAmount = totalCurrentBudget * 0.05; 
+                        action = "Test & Learn";
+                        reason = `Opportunité ${sector} non exploitée.`;
+                        trendClass = "text-bespoke-primary font-bold";
+                        icon = "fa-flask";
+                    }
+
+                    if(!p.isNew) recoAmount = recoAmount * recoBudgetMultiplier;
+
+                    totalNewBudget += recoAmount;
+
+                    const row = `
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="p-3 font-bold">
+                                ${p.isNew ? '<span class="bg-bespoke-primary text-white text-[9px] px-1 rounded mr-1">NEW</span>' : ''}
+                                ${p.name}
+                            </td>
+                            <td class="p-3 text-right text-gray-500">${formatMoney(p.current)}</td>
+                            <td class="p-3 text-right font-bold text-bespoke-secondary bg-bespoke-primary/5">${formatMoney(recoAmount)}</td>
+                            <td class="p-3 text-center">
+                                <span class="text-[10px] uppercase font-bold px-2 py-1 rounded bg-white border border-gray-200 ${trendClass}">
+                                    <i class="fas ${icon} mr-1"></i> ${action}
+                                </span>
+                            </td>
+                            <td class="p-3 text-[10px] text-gray-500 italic">${reason}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+
+                const projRev = (totalNewBudget * histRoas * growthFactor); 
+                const projRoas = (projRev / totalNewBudget);
+
+                document.getElementById('simProjRev').innerText = formatMoney(projRev);
+                document.getElementById('simProjGrowth').innerText = `+${Math.round((projRev - lastRev)/lastRev * 100)}% vs N-1`;
+                document.getElementById('simProjRoas').innerText = projRoas.toFixed(2) + "x";
+
+                const insightsList = document.getElementById('simInsightsList');
+                insightsList.innerHTML = '';
+                strategies.forEach(s => {
+                    insightsList.innerHTML += `<li>${s}</li>`;
+                });
+                
+                const geo = document.getElementById('simGeo').value;
+                if(geo === 'local') insightsList.innerHTML += `<li>Attention : L'approche Drive-to-store nécessite d'isoler les campagnes Meta/Google par zone de chalandise.</li>`;
+                if(sector === 'b2b') insightsList.innerHTML += `<li>Recommandation Audience : Uploader vos bases CRM (Clients + Prospects) pour exclusion/lookalike.</li>`;
+
+            }
+
+        window.onload = init;
+    </script>
+    <script>
+/**
+ * 🚀 SIMULATEUR PREMIUM V4 (LAYOUT FINAL)
+ */
+{
+    // --- 1. DATA CONFIGURATION ---
+    const CONFIG = {
+        sectors: [
+            { label: "Services & Finance", options: ["Banque / Assurance / Fintech", "Immobilier / PropTech", "Télécoms", "Éducation / Formation"] },
+            { label: "Retail & Lifestyle", options: ["Retail / E-commerce", "Mode / Textile", "Luxe & Beauté", "Sport / Wellness", "Tourisme / Travel", "Food / Restauration"] },
+            { label: "Industrie & B2B", options: ["Industrie / Manufacturing", "BTP / Construction", "Énergie / Environnement", "Logistique / Supply Chain", "Santé / Pharma"] },
+            { label: "Entertainment & Tech", options: ["Médias / Streaming", "Gaming / Esport", "Culture / Événementiel", "SaaS / Tech"] },
+            { label: "Institutions", options: ["Secteur Public", "ONG / Associations"] }
+        ],
+        kpis: [
+            { label: "Performance Business", options: [
+                { name: "Rentabilité (ROI/ROAS)", unit: "x", type: "number" },
+                { name: "Chiffre d'Affaires", unit: "€", type: "currency" },
+                { name: "Marge Brute", unit: "€", type: "currency" },
+                { name: "Volume de Ventes", unit: "Ventes", type: "number" },
+                { name: "CPA (Coût Acquisition)", unit: "€", type: "currency" }
+            ]},
+            { label: "Trafic & Engagement", options: [
+                { name: "Trafic Site / Sessions", unit: "Visites", type: "number" },
+                { name: "Taux de Conversion", unit: "%", type: "percent" },
+                { name: "Temps passé", unit: "min", type: "number" }
+            ]},
+            { label: "Notoriété", options: [
+                { name: "Impressions", unit: "Impr.", type: "number" },
+                { name: "Reach / Couverture", unit: "Pers.", type: "number" },
+                { name: "CPM", unit: "€", type: "currency" }
+            ]},
+            { label: "CRM & Leads", options: [
+                { name: "Volume de Leads", unit: "Leads", type: "number" },
+                { name: "CPL (Coût par Lead)", unit: "€", type: "currency" },
+                { name: "Nouveaux Clients", unit: "Clients", type: "number" }
+            ]}
+        ],
+        geoSuggestions: ["France", "Paris / IDF", "Lyon", "Marseille", "Europe", "Monde", "USA", "UK", "Allemagne", "Benelux", "Suisse"],
+        targetSuggestions: ["Gen Z", "Millennials", "Gen X", "Seniors", "Parents", "Étudiants", "CSP+", "CSP-", "Décideurs B2B", "Chefs d'entreprise", "Startups", "Freelances", "Acheteurs Online", "Luxe & Premium", "Gamers"],
+        channels: {
+            "Meta Ads": ["Global", "Feed Image", "Feed Vidéo", "Reels", "Stories", "Carousel"],
+            "Google Ads": ["Global", "Search (Mot-clé)", "Shopping (PMax)", "YouTube", "Discovery"],
+            "TikTok Ads": ["Global", "Spark Ads", "TopView", "In-Feed Video", "Pangle"],
+            "LinkedIn Ads": ["Global", "Sponsored Content", "Message Ads", "Lead Gen Form"],
+            "Amazon Ads": ["Global", "Sponsored Products", "Sponsored Brands", "Display"],
+            "TV / Replay": ["Global", "TV Linéaire", "TV Segmentée", "Replay (IPTV/VOL)"],
+            "Programmatic": ["Global", "Bannières IAB", "Habillage", "Vidéo Instream", "Native"],
+            "Influence": ["Global", "Micro", "Macro", "UGC"],
+            "Emailing": ["Global", "Newsletter", "Automation"],
+            "OOH / DOOH": ["Global", "Affichage Urbain", "Gares", "Centres Commerciaux"]
+        }
+    };
+
+    let currentUnitLabel = "€";
+    let currentUnitType = "currency";
+
+    // --- 2. INITIALISATION ---
+
+    function initSimulator() {
+        const secSelect = document.getElementById('sim-sector');
+        CONFIG.sectors.forEach(group => {
+            const grp = document.createElement('optgroup');
+            grp.label = group.label;
+            group.options.forEach(opt => grp.appendChild(new Option(opt, opt)));
+            secSelect.appendChild(grp);
+        });
+
+        const kpiSelect = document.getElementById('sim-kpi');
+        CONFIG.kpis.forEach(group => {
+            const grp = document.createElement('optgroup');
+            grp.label = group.label;
+            group.options.forEach(kpi => {
+                const opt = new Option(kpi.name, kpi.name);
+                opt.dataset.unit = kpi.unit;
+                opt.dataset.type = kpi.type;
+                grp.appendChild(opt);
+            });
+            kpiSelect.appendChild(grp);
+        });
+
+        const chanSelect = document.getElementById('sim-add-channel-select');
+        for (const [key, val] of Object.entries(CONFIG.channels)) {
+            chanSelect.add(new Option(key, key));
+        }
+
+        initTagInput('sim-geo-input', 'geo-tags-container', CONFIG.geoSuggestions, 'geo-suggestions');
+        initTagInput('sim-target-input', 'target-tags-container', CONFIG.targetSuggestions, 'target-suggestions');
+    }
+
+    // --- 3. TAG INPUT LOGIC ---
+
+    function initTagInput(inputId, containerId, suggestions, listId) {
+        const input = document.getElementById(inputId);
+        const container = document.getElementById(containerId);
+        const datalist = document.getElementById(listId);
+
+        datalist.innerHTML = '';
+        suggestions.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item;
+            datalist.appendChild(opt);
+        });
+
+        const handleInput = (val) => {
+            if (val) {
+                addTag(container, val);
+                input.value = '';
+                input.focus();
+            }
+        };
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleInput(this.value.trim());
+            }
+            if (e.key === 'Backspace' && this.value === '' && container.lastChild) {
+                container.lastChild.remove();
+            }
+        });
+        
+        input.addEventListener('change', function() {
+            handleInput(this.value.trim());
+        });
+    }
+
+    function addTag(container, text) {
+        const existing = Array.from(container.children).find(c => c.innerText.includes(text));
+        if (existing) return;
+
+        const tag = document.createElement('span');
+        tag.className = "inline-flex items-center gap-1.5 px-2.5 py-1 bg-bespoke-primary text-white text-[10px] font-bold rounded-full animate-fade-in whitespace-nowrap";
+        tag.innerHTML = `
+            ${text}
+            <i class="fas fa-times text-[9px] cursor-pointer hover:text-red-200 transition-colors" onclick="this.parentElement.remove()"></i>
+        `;
+        container.appendChild(tag);
+    }
+
+    // --- 4. LOGIQUE METIER ---
+
+    window.simUpdateFormats = function() {
+        const channel = document.getElementById('sim-add-channel-select').value;
+        const formatSelect = document.getElementById('sim-add-format-select');
+        formatSelect.innerHTML = '';
+        const formats = CONFIG.channels[channel] || ["Global"];
+        formats.forEach(fmt => formatSelect.add(new Option(fmt, fmt)));
+    };
+
+    window.simUpdateUnitLabel = function() {
+        const kpiSelect = document.getElementById('sim-kpi');
+        const selectedOpt = kpiSelect.options[kpiSelect.selectedIndex];
+        
+        if (selectedOpt && selectedOpt.dataset.unit) {
+            currentUnitLabel = selectedOpt.dataset.unit;
+            currentUnitType = selectedOpt.dataset.type;
+        } else {
+            currentUnitLabel = "€";
+            currentUnitType = "currency";
+        }
+
+        document.getElementById('simResultLabel').textContent = `Résultat N-1 (${currentUnitLabel})`;
+        document.querySelectorAll('input[data-type="result"]').forEach(inp => {
+            inp.placeholder = `${currentUnitLabel}`;
+        });
+        
+        simUpdateTotals();
+    };
+
+    window.simAddChannelRow = function() {
+        const channel = document.getElementById('sim-add-channel-select').value;
+        const format = document.getElementById('sim-add-format-select').value;
+
+        if (!channel) return;
+
+        const container = document.getElementById('sim-channels-container');
+        const emptyState = document.getElementById('sim-empty-state');
+        if(emptyState) emptyState.style.display = 'none';
+
+        const row = document.createElement('div');
+        row.className = "group flex items-center gap-2 bg-white p-2 rounded border border-gray-200 shadow-sm hover:border-bespoke-primary transition-all text-xs animate-fade-in";
+        
+        row.innerHTML = `
+            <div class="w-[35%] overflow-hidden flex flex-col justify-center">
+                <div class="font-bold text-bespoke-secondary truncate" title="${channel}">${channel}</div>
+                <div class="text-[9px] text-gray-400 truncate" title="${format}">${format}</div>
+            </div>
+            
+            <div class="w-[30%] relative">
+                <input type="number" placeholder="Budget" class="w-full py-1 px-2 bg-gray-50 border border-gray-100 rounded text-right font-bold text-gray-600 focus:bg-white focus:border-bespoke-primary outline-none transition-colors" oninput="simUpdateTotals()" data-type="budget">
+                <span class="absolute right-2 top-1 text-[9px] text-gray-400 pointer-events-none">€</span>
+            </div>
+            
+            <div class="w-[30%] relative">
+                <input type="number" placeholder="${currentUnitLabel}" class="w-full py-1 px-2 bg-gray-50 border border-gray-100 rounded text-right font-bold text-bespoke-primary focus:bg-white focus:border-bespoke-primary outline-none transition-colors" oninput="simUpdateTotals()" data-type="result">
+                <span class="absolute right-2 top-1 text-[9px] text-gray-400 pointer-events-none unit-label">${currentUnitLabel}</span>
+            </div>
+            
+            <button onclick="this.parentElement.remove(); simUpdateTotals();" class="w-[5%] text-gray-300 hover:text-red-500 transition-colors flex justify-center">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        row.dataset.channel = channel;
+        row.dataset.format = format;
+
+        container.appendChild(row);
+    };
+
+    window.simUpdateTotals = function() {
+        const rows = document.querySelectorAll('#sim-channels-container > div.group');
+        let totalBudget = 0;
+        let totalRes = 0;
+
+        rows.forEach(row => {
+            const b = parseFloat(row.querySelector('input[data-type="budget"]').value) || 0;
+            const r = parseFloat(row.querySelector('input[data-type="result"]').value) || 0;
+            totalBudget += b;
+            totalRes += r;
+            
+            const unitLabelSpan = row.querySelector('.unit-label');
+            if(unitLabelSpan) unitLabelSpan.textContent = currentUnitLabel;
+        });
+
+        document.getElementById('simTotalBudget').value = totalBudget.toLocaleString('fr-FR') + ' €';
+        
+        let resDisplay = totalRes.toLocaleString('fr-FR');
+        if(currentUnitType === 'currency') resDisplay += ' €';
+        else resDisplay += ' ' + currentUnitLabel;
+        
+        document.getElementById('simTotalRev').value = resDisplay;
+
+        const emptyState = document.getElementById('sim-empty-state');
+        if (rows.length === 0 && emptyState) emptyState.style.display = 'block';
+    };
+
+    // --- 5. RUN SIMULATION & ANIMATION ---
+
+    window.runSimulation = function() {
+        const geoTags = Array.from(document.querySelectorAll('#geo-tags-container span')).map(s => s.innerText);
+        const rows = document.querySelectorAll('#sim-channels-container > div.group');
+        
+        if (rows.length === 0) {
+            alert("Veuillez renseigner au moins un levier dans l'historique.");
+            return;
+        }
+
+        // ANIMATION : Hide Waiting State, Show Results
+        const waitingState = document.getElementById('sim-waiting-state');
+        const resultsContainer = document.getElementById('sim-results-container');
+        
+        // 1. Fade out waiting
+        waitingState.style.opacity = '0';
+        waitingState.style.pointerEvents = 'none';
+        
+        // 2. Unblur & Show results
+        resultsContainer.classList.remove('filter', 'blur-sm', 'opacity-50', 'pointer-events-none');
+        resultsContainer.classList.add('opacity-100');
+
+        // LOGIC : Generate Table
+        const tbody = document.getElementById('simTableBody');
+        tbody.innerHTML = '';
+        
+        let totalBudget = 0;
+        let totalProj = 0;
+
+        rows.forEach(row => {
+            const channel = row.dataset.channel;
+            const format = row.dataset.format;
+            const budget = parseFloat(row.querySelector('input[data-type="budget"]').value) || 0;
+            const result = parseFloat(row.querySelector('input[data-type="result"]').value) || 0;
+            
+            const perf = budget > 0 ? result / budget : 0;
+            let action = "MAINTIEN";
+            let boost = 1.05;
+            let style = "text-gray-500 bg-gray-50 border-gray-200";
+
+            if(format.includes("Vidéo") || channel.includes("Social")) {
+                action = "AUGMENTER";
+                boost = 1.25;
+                style = "text-green-700 bg-green-50 border-green-200";
+            } else if (format.includes("Display")) {
+                action = "OPTIMISER";
+                boost = 0.9;
+                style = "text-orange-600 bg-orange-50 border-orange-200";
+            }
+
+            const newBudget = budget * boost;
+            const newRes = newBudget * perf;
+
+            totalBudget += budget;
+            totalProj += newRes;
+
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-blue-50/50 transition-colors border-b border-gray-50 last:border-0";
+            tr.innerHTML = `
+                <td class="p-4">
+                    <div class="font-bold text-bespoke-secondary text-sm">${channel}</div>
+                    <div class="text-[10px] text-gray-400">${format}</div>
+                </td>
+                <td class="p-4 text-right text-xs font-mono text-gray-500">${budget.toLocaleString()} €</td>
+                <td class="p-4 text-right text-xs font-mono font-bold text-bespoke-primary bg-bespoke-primary/5 rounded-lg">${Math.round(newBudget).toLocaleString()} €</td>
+                <td class="p-4 text-center">
+                    <span class="text-[10px] font-bold px-2.5 py-1 rounded border ${style}">${action}</span>
+                </td>
+                <td class="p-4 text-[11px] text-gray-500 leading-tight">
+                    Potentiel de croissance identifié sur ${geoTags[0] || 'ce segment'}.
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Update Headers
+        let projDisplay = Math.round(totalProj).toLocaleString();
+        if(currentUnitType === 'currency') projDisplay += ' €';
+        else projDisplay += ' ' + currentUnitLabel;
+
+        document.getElementById('simProjRev').textContent = projDisplay;
+        
+        const globalPerf = totalBudget > 0 ? (totalProj / (totalBudget * 1.1)) : 0;
+        let perfLabel = globalPerf.toFixed(2) + 'x';
+        if(currentUnitType !== 'currency' && currentUnitLabel !== 'x') perfLabel = "CPA Opt.";
+        
+        document.getElementById('simProjRoas').textContent = perfLabel;
+        document.getElementById('simProjGrowth').textContent = '+14% vs N-1';
+
+        // Update Insights
+        const insightsList = document.getElementById('simInsightsList');
+        insightsList.innerHTML = `
+            <li>Le mix média proposé capitalise sur la performance historique de <strong>${rows[0].dataset.channel}</strong>.</li>
+            <li>L'ajout de formats vidéo sur ${geoTags[0] || 'le national'} permet d'aller chercher de la couverture incrémentale.</li>
+            <li>Le budget global a été ajusté pour maximiser le ${document.getElementById('sim-kpi').value || 'ROI'}.</li>
+        `;
+    };
+
+    // START
+    document.addEventListener('DOMContentLoaded', initSimulator);
+}
+</script>
+</body>
+</html>

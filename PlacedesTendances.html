@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Place des Tendances | Master Plan Final</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pdt: {
+                            blue: '#192a3e',
+                            placid: '#8ca3b8',
+                            merlot: '#722f37',
+                            anthracite: '#2e2e2e',
+                            sand: '#f5f5f0',
+                            light: '#ffffff'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Montserrat', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f5f5f0; color: #2e2e2e; }
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .custom-checkbox input:checked + div { background-color: #722f37; border-color: #722f37; }
+        .custom-checkbox input:checked + div:after {
+            content: ''; position: absolute; width: 5px; height: 10px; border: solid white;
+            border-width: 0 2px 2px 0; top: 2px; left: 6px; transform: rotate(45deg);
+        }
+        .row-disabled { opacity: 0.5; background-color: #f9fafb; text-decoration: line-through; }
+        .hidden-force { display: none !important; }
+        .action-card { transition: all 0.3s ease; border-left: 4px solid transparent; }
+        .action-card:hover { transform: translateX(5px); border-left-color: #722f37; }
+    </style>
+</head>
+<body class="font-sans antialiased text-xs md:text-sm pb-20">
+
+    <!-- Header -->
+    <header class="bg-pdt-blue text-white py-6 px-4 shadow-lg sticky top-0 z-50">
+        <div class="max-w-[1400px] mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="font-serif text-2xl md:text-3xl tracking-widest font-bold">PLACE DES TENDANCES</h1>
+                <p class="text-xs md:text-sm text-gray-300 tracking-wider mt-1">MASTER PLAN : FINALE V6.5</p>
+            </div>
+            <div class="text-right hidden md:block">
+                <div class="bg-pdt-merlot px-3 py-1 rounded text-xs font-bold uppercase tracking-wide">Version Validée</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1400px] mx-auto px-4 py-8 space-y-12">
+
+        <!-- SECTION 1: MEDIA PLAN SIMULATOR -->
+        <section class="bg-white rounded-xl card-shadow overflow-hidden border border-gray-200">
+            <div class="p-4 border-b border-gray-100 flex items-center gap-2 bg-gray-50">
+                <span class="bg-pdt-blue text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs">1</span>
+                <h3 class="font-serif text-xl font-bold text-pdt-blue">Média Planning Expert</h3>
+            </div>
+            
+            <!-- Controls & KPIs Header -->
+            <div class="p-6 bg-white border-b border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6 pb-6 border-b border-gray-100">
+                    <!-- Budget Control -->
+                    <div class="flex flex-col gap-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide flex justify-between">
+                            <span>Budget Campagne</span>
+                            <span class="text-pdt-merlot font-bold" id="budgetLabel">--</span>
+                        </label>
+                        <div class="flex items-center gap-4">
+                            <i class="fas fa-coins text-pdt-merlot text-xl"></i>
+                            <input type="range" id="budgetSlider" min="30000" max="60000" step="1000" value="45000" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-pdt-merlot">
+                            <span id="budgetDisplay" class="font-serif text-3xl text-pdt-blue font-bold min-w-[120px]">45 k€</span>
+                        </div>
+                    </div>
+
+                    <!-- Main Result -->
+                    <div class="flex items-center justify-end gap-6">
+                         <div class="text-right">
+                            <div class="text-[10px] text-gray-400 uppercase font-bold">Chiffre d'Affaires Est.</div>
+                            <div id="totalRevenue" class="text-3xl font-bold text-green-700">-- €</div>
+                        </div>
+                        <div class="bg-gray-50 px-6 py-3 rounded-lg border border-gray-200 text-center min-w-[120px]">
+                            <div class="text-[10px] text-gray-500 uppercase font-bold">ROI Global</div>
+                            <div id="totalROI" class="text-3xl font-bold text-pdt-blue">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secondary Metrics -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div class="p-2 border-r border-gray-100 last:border-0">
+                        <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Impressions (Visibilité)</div>
+                        <div id="totalImps" class="text-xl font-bold text-gray-700">-- M</div>
+                    </div>
+                    <div class="p-2 border-r border-gray-100 last:border-0">
+                        <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Trafic (Sessions)</div>
+                        <div id="totalTraffic" class="text-xl font-bold text-pdt-placid">-- k</div>
+                    </div>
+                    <div class="p-2 border-r border-gray-100 last:border-0">
+                        <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Panier Moyen Global</div>
+                        <div id="globalAOV" class="text-xl font-bold text-gray-600">-- €</div>
+                    </div>
+                    <div class="p-2">
+                        <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Leviers Actifs</div>
+                        <div id="activeLeversCount" class="text-xl font-bold text-pdt-merlot">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Expert Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[1000px]">
+                    <thead class="bg-pdt-blue text-white font-serif text-[11px] uppercase tracking-wider">
+                        <tr>
+                            <th class="p-3 w-10 text-center"></th>
+                            <th class="p-3">Levier</th>
+                            <th class="p-3 w-40">Ciblage</th>
+                            <th class="p-3 w-32">Formats</th>
+                            <th class="p-3 text-right">Budget</th>
+                            <th class="p-3 text-right">Coût Unit.</th>
+                            <th class="p-3 text-right">Vol.<br><span class="opacity-70 text-[9px]">(Imps/Clics)</span></th>
+                            <th class="p-3 text-right">Trafic<br><span class="opacity-70 text-[9px]">(Sess.)</span></th>
+                            <th class="p-3 text-right">Panier Moyen</th>
+                            <th class="p-3 text-right bg-blue-900/30">Est. Ventes<br><span class="opacity-70 text-[9px]">(Com.)</span></th>
+                            <th class="p-3 text-right">CA Est.<br><span class="opacity-70 text-[9px]">(€)</span></th>
+                            <th class="p-3 text-right bg-pdt-merlot/20">ROI</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leversTableBody" class="text-sm divide-y divide-gray-100">
+                        <!-- JS Generated Rows -->
+                    </tbody>
+                    <!-- TOTAL ROW FOOTER -->
+                    <tfoot class="bg-gray-100 font-bold text-gray-800 border-t-2 border-gray-300">
+                        <tr>
+                            <td colspan="4" class="p-4 text-right uppercase text-xs tracking-wider">Total Campagne</td>
+                            <td class="p-4 text-right" id="ftBudget">--</td>
+                            <td class="p-4 text-right text-gray-400 text-[10px]">-</td>
+                            <td class="p-4 text-right text-gray-600" id="ftVolume">--</td>
+                            <td class="p-4 text-right text-pdt-placid" id="ftTraffic">--</td>
+                            <td class="p-4 text-right text-gray-600" id="ftAOV">--</td>
+                            <td class="p-4 text-right text-pdt-blue bg-blue-50" id="ftSales">--</td>
+                            <td class="p-4 text-right text-green-700" id="ftRevenue">--</td>
+                            <td class="p-4 text-right bg-pdt-merlot/10 text-pdt-merlot" id="ftROI">--</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <!-- Insight Footer -->
+            <div class="bg-gray-50 p-4 border-t border-gray-200 text-xs text-gray-500 flex justify-between">
+                <div id="strategyInsight" class="italic font-medium text-pdt-blue">Analyse en cours...</div>
+                <div>*Les données sont des estimations basées sur les benchmarks sectoriels.</div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: CHARTS -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-white p-6 rounded-xl card-shadow border border-gray-100">
+                <h3 class="font-serif text-lg text-pdt-blue mb-4">Répartition Budgétaire</h3>
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="allocationChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl card-shadow border border-gray-100">
+                <h3 class="font-serif text-lg text-pdt-blue mb-4">Contribution au Chiffre d'Affaires</h3>
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: DETAILED OPERATIONAL PLAN -->
+        <section id="operationalPlanSection">
+            <div class="flex items-center gap-4 mb-8">
+                <span class="bg-pdt-blue text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg">2</span>
+                <h3 class="text-2xl font-serif text-pdt-blue font-bold">Détail des Leviers Sélectionnés</h3>
+                <div class="h-px bg-gray-300 flex-grow"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <!-- Pillar 1: Acquisition -->
+                <div id="col-acquisition" class="space-y-4">
+                    <div class="bg-pdt-placid text-white px-4 py-2 rounded-t-lg font-bold flex justify-between items-center">
+                        <span>1. DÉCOUVERTE & TRAFIC</span>
+                        <i class="fas fa-bullhorn opacity-70"></i>
+                    </div>
+                    
+                    <div id="card-social" class="bg-white p-5 rounded-lg card-shadow action-card">
+                        <h4 class="font-bold text-pdt-blue mb-2 flex items-center gap-2"><i class="fab fa-instagram text-pink-600"></i> Social Ads</h4>
+                        <div class="space-y-3 text-sm text-gray-600">
+                            <div class="flex justify-between text-xs border-b pb-2"><span>Modèle: <strong>CPM/CPC</strong></span><span class="text-orange-600">PM: ~130€</span></div>
+                            <p>Formats visuels (Reels) pour recruter.</p>
+                        </div>
+                    </div>
+                    <div id="card-influence" class="bg-white p-5 rounded-lg card-shadow action-card">
+                        <h4 class="font-bold text-pdt-blue mb-2 flex items-center gap-2"><i class="fas fa-camera-retro text-purple-600"></i> Influence</h4>
+                        <div class="space-y-3 text-sm text-gray-600">
+                            <div class="flex justify-between text-xs border-b pb-2"><span>Modèle: <strong>Forfait</strong></span><span class="text-orange-600">PM: ~125€</span></div>
+                            <p>Création de désir via micro-influenceuses.</p>
+                        </div>
+                    </div>
+                    <div id="card-affiliation" class="bg-white p-5 rounded-lg card-shadow action-card">
+                        <h4 class="font-bold text-pdt-blue mb-2 flex items-center gap-2"><i class="fas fa-handshake text-teal-600"></i> Affiliation</h4>
+                        <div class="space-y-3 text-sm text-gray-600">
+                            <div class="flex justify-between text-xs border-b pb-2"><span>Modèle: <strong>CPA</strong></span><span class="text-orange-600">PM: ~130€</span></div>
+                            <p>Sites de bons plans / cashback.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pillar 2: Consideration -->
+                <div id="col-consideration" class="space-y-4">
+                    <div class="bg-gray-500 text-white px-4 py-2 rounded-t-lg font-bold flex justify-between items-center">
+                        <span>2. RECHERCHE ACTIVE</span>
+                        <i class="fas fa-search opacity-70"></i>
+                    </div>
+
+                    <div id="card-seo" class="bg-white p-5 rounded-lg card-shadow action-card">
+                        <h4 class="font-bold text-pdt-blue mb-2 flex items-center gap-2"><i class="fas fa-pen-nib text-orange-500"></i> SEO & Contenu</h4>
+                        <div class="space-y-3 text-sm text-gray-600">
+                             <div class="flex justify-between text-xs border-b pb-2"><span>Modèle: <strong>Frais</strong></span><span class="text-green-600">PM: ~160€</span></div>
+                            <p>Guides de style pour capter les intentionnistes.</p>
+                        </div>
+                    </div>
+                    <div id="card-sea" class="bg-white p-5 rounded-lg card-shadow action-card">
+                        <h4 class="font-bold text-pdt-blue mb-2 flex items-center gap-2"><i class="fab fa-google text-blue-500"></i> Google Ads</h4>
+                        <div class="space-y-3 text-sm text-gray-600">
+                            <div class="flex justify-between text-xs border-b pb-2"><span>Modèle: <strong>CPC</strong></span><span class="text-green-600">PM: ~175€</span></div>
+                            <p>Intentionnistes forts. Panier élevé.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pillar 3: Conversion -->
+                <div id="col-conversion" class="space-y-4">
+                    <div class="bg-pdt-merlot text-white px-4 py-2 rounded-t-lg font-bold flex justify-between items-center">
+                        <span>3. FIDÉLISATION</span>
+                        <i class="fas fa-shopping-bag opacity-70"></i>
+                    </div>
+
+                    <div id="card-shopping" class="bg-white p-5 rounded-lg card-shadow action-card">
+                        <h4 class="font-bold text-pdt-blue mb-2 flex items-center gap-2"><i class="fas fa-tag text-green-600"></i> Shopping (P-Max)</h4>
+                         <div class="space-y-3 text-sm text-gray-600"><p>Activé via Google Ads. Visibilité produit directe.</p></div>
+                    </div>
+                    <div id="card-retargeting" class="bg-white p-5 rounded-lg card-shadow action-card">
+                        <h4 class="font-bold text-pdt-blue mb-2 flex items-center gap-2"><i class="fas fa-sync text-pdt-merlot"></i> Retargeting</h4>
+                        <div class="space-y-3 text-sm text-gray-600">
+                            <div class="flex justify-between text-xs border-b pb-2"><span>Modèle: <strong>CPC</strong></span><span class="text-green-600">PM: ~160€</span></div>
+                            <p>Conversion des abandonnistes.</p>
+                        </div>
+                    </div>
+                    <div id="card-crm" class="bg-white p-5 rounded-lg card-shadow action-card">
+                        <h4 class="font-bold text-pdt-blue mb-2 flex items-center gap-2"><i class="fas fa-envelope text-gray-600"></i> CRM & Email</h4>
+                        <div class="space-y-3 text-sm text-gray-600">
+                            <div class="flex justify-between text-xs border-b pb-2"><span>Modèle: <strong>Licence</strong></span><span class="text-green-600 font-bold">PM: ~180€</span></div>
+                            <p>Clients fidèles. Panier le plus élevé.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: ACTIVATION CALENDAR -->
+        <section id="timelineSection">
+            <div class="flex items-center gap-4 mb-8">
+                <span class="bg-pdt-blue text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg">3</span>
+                <h3 class="text-2xl font-serif text-pdt-blue font-bold">Calendrier d'Activation</h3>
+                <div class="h-px bg-gray-300 flex-grow"></div>
+            </div>
+
+            <div class="bg-white rounded-xl card-shadow p-6 overflow-x-auto">
+                <div class="min-w-[800px]">
+                    <div class="grid grid-cols-12 gap-2 mb-4 text-center font-bold text-gray-500 text-xs uppercase">
+                        <div class="col-span-4 border-b-2 border-pdt-placid pb-2">Mars</div>
+                        <div class="col-span-4 border-b-2 border-gray-400 pb-2">Avril</div>
+                        <div class="col-span-4 border-b-2 border-pdt-merlot pb-2">Mai</div>
+                    </div>
+
+                    <!-- Rows -->
+                    <div id="timeline-social" class="grid grid-cols-12 gap-2 mb-4 items-center group hover:bg-gray-50 p-2 rounded">
+                        <div class="col-span-2 text-xs font-bold text-gray-700">Social Ads</div>
+                        <div class="col-span-10 grid grid-cols-10 gap-1 h-6">
+                            <div class="col-span-2 bg-pdt-placid opacity-80 rounded text-[10px] text-white flex items-center justify-center">Brand</div>
+                            <div class="col-span-2 bg-pdt-placid opacity-60 rounded text-[10px] text-white flex items-center justify-center">Trafic</div>
+                            <div class="col-span-3 bg-gray-400 rounded text-[10px] text-white flex items-center justify-center">Collection</div>
+                            <div class="col-span-3 bg-pdt-merlot rounded text-[10px] text-white flex items-center justify-center">Offres</div>
+                        </div>
+                    </div>
+                    <div id="timeline-influence" class="grid grid-cols-12 gap-2 mb-4 items-center group hover:bg-gray-50 p-2 rounded">
+                        <div class="col-span-2 text-xs font-bold text-gray-700">Influence</div>
+                        <div class="col-span-10 grid grid-cols-10 gap-1 h-6">
+                            <div class="col-span-1"></div>
+                            <div class="col-span-2 bg-purple-400 rounded text-[10px] text-white flex items-center justify-center">Seeding</div>
+                            <div class="col-span-2 bg-purple-500 rounded text-[10px] text-white flex items-center justify-center">UGC Live</div>
+                        </div>
+                    </div>
+                     <div id="timeline-affiliation" class="grid grid-cols-12 gap-2 mb-4 items-center group hover:bg-gray-50 p-2 rounded">
+                        <div class="col-span-2 text-xs font-bold text-gray-700">Affiliation</div>
+                        <div class="col-span-10 grid grid-cols-10 gap-1 h-6">
+                            <div class="col-span-10 bg-teal-500 opacity-30 rounded text-[10px] text-teal-800 flex items-center justify-center border border-teal-600">Fil Rouge</div>
+                        </div>
+                    </div>
+                    <div id="timeline-seo" class="grid grid-cols-12 gap-2 mb-4 items-center group hover:bg-gray-50 p-2 rounded">
+                        <div class="col-span-2 text-xs font-bold text-gray-700">Contenu / SEO</div>
+                        <div class="col-span-10 grid grid-cols-10 gap-1 h-6">
+                            <div class="col-span-3 border border-orange-400 text-orange-600 rounded text-[10px] flex items-center justify-center">Printemps</div>
+                            <div class="col-span-3 border border-orange-400 text-orange-600 rounded text-[10px] flex items-center justify-center ml-1">Cérémonie</div>
+                            <div class="col-span-3 border border-orange-400 text-orange-600 rounded text-[10px] flex items-center justify-center ml-1">Cadeaux</div>
+                        </div>
+                    </div>
+                    <div id="timeline-sea" class="grid grid-cols-12 gap-2 mb-4 items-center group hover:bg-gray-50 p-2 rounded">
+                        <div class="col-span-2 text-xs font-bold text-gray-700">Google Ads</div>
+                        <div class="col-span-10 grid grid-cols-10 gap-1 h-6">
+                            <div class="col-span-10 bg-green-500 opacity-20 border border-green-600 rounded flex items-center px-2 text-[10px] text-green-800">Fil Rouge : Shopping + Brand</div>
+                        </div>
+                    </div>
+                    <div id="timeline-retargeting" class="grid grid-cols-12 gap-2 mb-4 items-center group hover:bg-gray-50 p-2 rounded">
+                        <div class="col-span-2 text-xs font-bold text-gray-700">Retargeting</div>
+                        <div class="col-span-10 grid grid-cols-10 gap-1 h-6">
+                             <div class="col-span-3"></div>
+                             <div class="col-span-7 bg-pdt-merlot opacity-80 rounded text-[10px] text-white flex items-center justify-center">Abandonnistes</div>
+                        </div>
+                    </div>
+                    <div id="timeline-crm" class="grid grid-cols-12 gap-2 mb-4 items-center group hover:bg-gray-50 p-2 rounded">
+                        <div class="col-span-2 text-xs font-bold text-gray-700">CRM / Email</div>
+                        <div class="col-span-10 grid grid-cols-10 gap-1 h-6 relative">
+                            <div class="absolute left-[10%] w-3 h-3 bg-pdt-merlot rotate-45 transform -translate-x-1/2 mt-1.5"></div>
+                            <div class="absolute left-[40%] w-3 h-3 bg-pdt-merlot rotate-45 transform -translate-x-1/2 mt-1.5"></div>
+                            <div class="absolute left-[85%] w-4 h-4 bg-red-600 rotate-45 transform -translate-x-1/2 mt-1 shadow"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- DATA MODEL ---
+        const DATA = [
+            { 
+                id: 'social', 
+                name: 'Social Ads', 
+                targeting: 'Lookalike 1%, Intérêts Mode',
+                formats: 'Reels, Collection',
+                buyingMode: 'CPM',
+                unitCost: 4.50, 
+                unitLabel: 'CPM',
+                weight: 30, 
+                ctr: 0.012, 
+                convRate: 0.010, 
+                aov: 130,
+                color: '#192a3e' 
+            },
+            { 
+                id: 'influence', 
+                name: 'Influence', 
+                targeting: 'Communautés Mode (10k-50k)',
+                formats: 'Stories, Unboxing',
+                buyingMode: 'Forfait',
+                unitCost: 1500, 
+                unitLabel: '/Collab',
+                weight: 15,
+                ctr: 0.00,
+                simulatedCPM: 15.00,
+                convRate: 0.012,
+                aov: 125,
+                color: '#a855f7' 
+            },
+            { 
+                id: 'sea', 
+                name: 'Google Ads', 
+                targeting: 'Mots-clés Marque & Génériques',
+                formats: 'Text Ads, P-Max',
+                buyingMode: 'CPC',
+                unitCost: 0.85, 
+                unitLabel: 'CPC',
+                weight: 20, 
+                ctr: 0.00, 
+                convRate: 0.028, 
+                aov: 175,
+                color: '#3b82f6' 
+            },
+            { 
+                id: 'seo', 
+                name: 'SEO & Contenu', 
+                targeting: 'Requêtes longue traîne',
+                formats: 'Guides de style',
+                buyingMode: 'Forfait',
+                unitCost: 0, 
+                unitLabel: 'Prod.',
+                weight: 10,
+                cpcEquivalent: 0.20,
+                convRate: 0.015,
+                aov: 160,
+                color: '#f97316' 
+            },
+            { 
+                id: 'affiliation', 
+                name: 'Affiliation', 
+                targeting: 'Chasseurs de bons plans',
+                formats: 'Liens trackés',
+                buyingMode: 'CPA',
+                unitCost: 8, 
+                unitLabel: '% CPA',
+                weight: 10,
+                cpcEquivalent: 0.30,
+                convRate: 0.020,
+                aov: 130,
+                color: '#14b8a6' 
+            },
+            { 
+                id: 'retargeting', 
+                name: 'Retargeting', 
+                targeting: 'Visiteurs J-30',
+                formats: 'DPA (Produits)',
+                buyingMode: 'CPC',
+                unitCost: 0.45, 
+                unitLabel: 'CPC',
+                weight: 10,
+                convRate: 0.040, 
+                aov: 160,
+                color: '#722f37' 
+            },
+            { 
+                id: 'crm', 
+                name: 'CRM / Email', 
+                targeting: 'Base Clients',
+                formats: 'Newsletter',
+                buyingMode: 'Licence',
+                unitCost: 0.005, 
+                unitLabel: '/Email',
+                weight: 5,
+                cpcEquivalent: 0.05,
+                convRate: 0.045,
+                aov: 180,
+                color: '#64748b' 
+            }
+        ];
+
+        let currentBudget = 45000;
+        let selectedLeverIds = ['social', 'influence', 'sea', 'seo', 'affiliation', 'retargeting', 'crm'];
+        let allocChart = null;
+        let revChart = null;
+
+        const budgetSlider = document.getElementById('budgetSlider');
+        const budgetDisplay = document.getElementById('budgetDisplay');
+        const tableBody = document.getElementById('leversTableBody');
+        
+        // Header KPIs
+        const totalImpsEl = document.getElementById('totalImps');
+        const totalTrafficEl = document.getElementById('totalTraffic');
+        const totalRevenueEl = document.getElementById('totalRevenue');
+        const totalROIEl = document.getElementById('totalROI');
+        const globalAOVEl = document.getElementById('globalAOV');
+        const activeLeversCountEl = document.getElementById('activeLeversCount');
+        const insightText = document.getElementById('strategyInsight');
+
+        // Footer Elements
+        const ftBudget = document.getElementById('ftBudget');
+        const ftVolume = document.getElementById('ftVolume');
+        const ftTraffic = document.getElementById('ftTraffic');
+        const ftAOV = document.getElementById('ftAOV');
+        const ftSales = document.getElementById('ftSales');
+        const ftRevenue = document.getElementById('ftRevenue');
+        const ftROI = document.getElementById('ftROI');
+
+        window.onload = function() {
+            initCharts();
+            renderTable();
+            recalculate();
+            updateOperationalVisibility();
+
+            budgetSlider.addEventListener('input', (e) => {
+                currentBudget = parseInt(e.target.value);
+                budgetDisplay.textContent = formatMetric(currentBudget) + " €";
+                recalculate();
+            });
+        };
+
+        function toggleLever(id) {
+            if (selectedLeverIds.includes(id)) {
+                selectedLeverIds = selectedLeverIds.filter(lid => lid !== id);
+            } else {
+                selectedLeverIds.push(id);
+            }
+            renderTable();
+            recalculate();
+            updateOperationalVisibility();
+        }
+
+        function updateOperationalVisibility() {
+            const setVisible = (id, visible) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    visible ? el.classList.remove('hidden-force') : el.classList.add('hidden-force');
+                }
+            };
+
+            DATA.forEach(lever => {
+                 setVisible(`timeline-${lever.id}`, selectedLeverIds.includes(lever.id));
+                 setVisible(`card-${lever.id}`, selectedLeverIds.includes(lever.id));
+            });
+
+            setVisible('card-shopping', selectedLeverIds.includes('sea'));
+
+            const hasAcq = selectedLeverIds.some(id => ['social', 'influence', 'affiliation'].includes(id));
+            setVisible('col-acquisition', hasAcq);
+
+            const hasCons = selectedLeverIds.some(id => ['seo', 'sea'].includes(id));
+            setVisible('col-consideration', hasCons);
+
+            const hasConv = selectedLeverIds.some(id => ['sea', 'retargeting', 'crm'].includes(id));
+            setVisible('col-conversion', hasConv);
+        }
+
+        function recalculate() {
+            const totalWeight = DATA.filter(d => selectedLeverIds.includes(d.id))
+                                    .reduce((sum, d) => sum + d.weight, 0);
+
+            let aggImps = 0;
+            let aggTraffic = 0;
+            let aggSales = 0;
+            let aggRevenue = 0;
+            let aggBudget = 0;
+            
+            let allocData = [];
+            let revData = [];
+
+            DATA.forEach(lever => {
+                const row = document.getElementById(`row-${lever.id}`);
+                const isSelected = selectedLeverIds.includes(lever.id);
+
+                let budget = 0;
+                let volume = 0; 
+                let traffic = 0; 
+                let sales = 0;
+                let revenue = 0;
+                let leverROI = 0;
+                
+                let volDisplay = "-";
+
+                if (isSelected && totalWeight > 0) {
+                    budget = (lever.weight / totalWeight) * currentBudget;
+                    aggBudget += budget;
+
+                    if (lever.buyingMode === 'CPM') {
+                        const imps = (budget / lever.unitCost) * 1000;
+                        volume = imps;
+                        traffic = imps * lever.ctr;
+                        volDisplay = formatMetric(imps);
+                        aggImps += imps;
+                    } 
+                    else if (lever.buyingMode === 'CPC') {
+                        const clicks = budget / lever.unitCost;
+                        volume = clicks;
+                        traffic = clicks; 
+                        aggImps += (clicks / 0.02);
+                        volDisplay = formatMetric(clicks);
+                    }
+                    else if (lever.buyingMode === 'Forfait') {
+                         if (lever.id === 'influence') {
+                            const imps = (budget / lever.simulatedCPM) * 1000;
+                            traffic = imps * 0.015;
+                            aggImps += imps;
+                            volDisplay = "~" + formatMetric(imps);
+                        } else {
+                            traffic = budget / lever.cpcEquivalent;
+                            aggImps += traffic * 10; 
+                            volDisplay = "N/A";
+                        }
+                    }
+                    else if (lever.buyingMode === 'CPA' || lever.buyingMode === 'Licence') {
+                        const equivCPC = lever.cpcEquivalent || 0.50;
+                        traffic = budget / equivCPC;
+                        aggImps += traffic * 50; 
+                        volDisplay = "-";
+                    }
+
+                    sales = traffic * lever.convRate;
+                    revenue = sales * lever.aov;
+                    if(budget > 0) leverROI = (revenue / budget).toFixed(1);
+
+                    aggTraffic += traffic;
+                    aggSales += sales;
+                    aggRevenue += revenue;
+                    
+                    row.querySelector('.col-budget').textContent = formatCurrency(budget);
+                    row.querySelector('.col-volume').innerHTML = volDisplay;
+                    row.querySelector('.col-traffic').textContent = formatMetric(traffic);
+                    row.querySelector('.col-sales').textContent = Math.round(sales);
+                    row.querySelector('.col-revenue').textContent = formatCurrency(revenue);
+                    
+                    const roiCell = row.querySelector('.col-roi');
+                    roiCell.textContent = leverROI + "x";
+                    roiCell.className = `p-3 text-right font-bold text-xs ${leverROI >= 2 ? 'text-green-600' : 'text-orange-500'} col-roi bg-pdt-merlot/5`;
+                    
+                    row.classList.remove('row-disabled');
+
+                    allocData.push(budget);
+                    revData.push(revenue);
+                } else {
+                    row.querySelector('.col-budget').textContent = '-';
+                    row.querySelector('.col-volume').textContent = '-';
+                    row.querySelector('.col-traffic').textContent = '-';
+                    row.querySelector('.col-sales').textContent = '-';
+                    row.querySelector('.col-revenue').textContent = '-';
+                    row.querySelector('.col-roi').textContent = '-';
+                    row.classList.add('row-disabled');
+                    allocData.push(0);
+                    revData.push(0);
+                }
+            });
+
+            // Update Header KPIs
+            totalImpsEl.textContent = (aggImps / 1000000).toFixed(1) + " M";
+            totalTrafficEl.textContent = (aggTraffic / 1000).toFixed(0) + " k";
+            totalRevenueEl.textContent = formatCurrency(aggRevenue);
+            activeLeversCountEl.textContent = selectedLeverIds.length;
+            
+            const roi = currentBudget > 0 ? (aggRevenue / currentBudget).toFixed(2) : 0;
+            totalROIEl.textContent = roi;
+            totalROIEl.className = `text-3xl font-bold ${roi >= 2.5 ? 'text-green-600' : roi >= 2 ? 'text-pdt-blue' : 'text-orange-500'}`;
+            
+            const globalAverageBasket = aggSales > 0 ? (aggRevenue / aggSales).toFixed(0) : 0;
+            globalAOVEl.textContent = globalAverageBasket + " €";
+            insightText.textContent = `Projection : ${formatMetric(aggTraffic)} visites pour un CA estimé de ${formatCurrency(aggRevenue)}.`;
+
+            // UPDATE TOTAL FOOTER
+            ftBudget.textContent = formatCurrency(aggBudget);
+            ftVolume.innerHTML = (aggImps / 1000000).toFixed(1) + " M <span class='text-[9px]'>Imps</span>";
+            ftTraffic.textContent = formatMetric(aggTraffic);
+            ftAOV.textContent = globalAverageBasket + " €"; // Weighted Global AOV
+            ftSales.textContent = Math.round(aggSales);
+            ftRevenue.textContent = formatCurrency(aggRevenue);
+            ftROI.textContent = roi + "x";
+
+            updateCharts(allocData, revData);
+        }
+
+        function renderTable() {
+            tableBody.innerHTML = '';
+            DATA.forEach(lever => {
+                const isChecked = selectedLeverIds.includes(lever.id);
+                const tr = document.createElement('tr');
+                tr.id = `row-${lever.id}`;
+                tr.className = `transition-colors hover:bg-gray-50 ${isChecked ? 'bg-white' : 'row-disabled'}`;
+                
+                let costDisplay = lever.unitCost > 0 ? `${lever.unitCost.toFixed(2)}€` : "Variable";
+                if(lever.buyingMode === 'CPA') costDisplay = "8%";
+
+                tr.innerHTML = `
+                    <td class="p-3 text-center">
+                        <label class="custom-checkbox relative flex justify-center items-center cursor-pointer">
+                            <input type="checkbox" class="opacity-0 absolute w-full h-full z-10 cursor-pointer" 
+                                   ${isChecked ? 'checked' : ''} 
+                                   onchange="toggleLever('${lever.id}')">
+                            <div class="w-4 h-4 border-2 border-gray-300 rounded relative transition-colors"></div>
+                        </label>
+                    </td>
+                    <td class="p-3 font-medium text-pdt-blue flex items-center gap-2 text-xs">
+                        <span class="w-2 h-2 rounded-full" style="background-color: ${lever.color}"></span>
+                        ${lever.name}
+                    </td>
+                    <td class="p-3 text-[10px] text-gray-500 leading-tight">
+                        ${lever.targeting}
+                    </td>
+                    <td class="p-3 text-[10px] text-gray-500 leading-tight">
+                        ${lever.formats}
+                    </td>
+                    <td class="p-3 text-right font-bold text-gray-700 col-budget text-xs">--</td>
+                    <td class="p-3 text-right text-xs">
+                        <span class="font-bold bg-gray-100 px-1 rounded text-[10px]">${lever.buyingMode}</span>
+                        <div class="text-[9px] text-gray-400 mt-1">${costDisplay}</div>
+                    </td>
+                    <td class="p-3 text-right text-xs font-mono text-gray-600 col-volume">--</td>
+                    <td class="p-3 text-right font-bold text-pdt-placid col-traffic text-xs">--</td>
+                    <td class="p-3 text-right text-xs text-gray-500">${lever.aov} €</td>
+                    <td class="p-3 text-right font-bold text-blue-800 bg-blue-50/50 col-sales text-xs">--</td>
+                    <td class="p-3 text-right font-bold text-green-700 col-revenue text-xs">--</td>
+                    <td class="p-3 text-right font-bold col-roi text-xs">--</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        function initCharts() {
+            const ctxAlloc = document.getElementById('allocationChart').getContext('2d');
+            allocChart = new Chart(ctxAlloc, {
+                type: 'doughnut',
+                data: {
+                    labels: DATA.map(d => d.name),
+                    datasets: [{
+                        data: [],
+                        backgroundColor: DATA.map(d => d.color),
+                        borderWidth: 1, borderColor: '#fff'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 } } } } }
+            });
+
+            const ctxRev = document.getElementById('revenueChart').getContext('2d');
+            revChart = new Chart(ctxRev, {
+                type: 'bar',
+                data: {
+                    labels: DATA.map(d => d.name),
+                    datasets: [{
+                        label: "CA Généré (€)",
+                        data: [],
+                        backgroundColor: DATA.map(d => d.color),
+                        borderRadius: 4
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false }, ticks: { font: { size: 9 } } } } 
+                }
+            });
+        }
+
+        function updateCharts(alloc, rev) {
+            if(allocChart) { allocChart.data.datasets[0].data = alloc; allocChart.update(); }
+            if(revChart) { revChart.data.datasets[0].data = rev; revChart.update(); }
+        }
+
+        function formatCurrency(val) {
+            return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val);
+        }
+
+        function formatMetric(val) {
+            return new Intl.NumberFormat('fr-FR', { notation: "compact" }).format(val);
+        }
+    </script>
+</body>
+</html>

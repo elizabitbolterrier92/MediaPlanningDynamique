@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Média Planning Manuel | Saisie Manuelle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pdt: {
+                            blue: '#192a3e',
+                            placid: '#8ca3b8',
+                            merlot: '#722f37',
+                            anthracite: '#2e2e2e',
+                            sand: '#f5f5f0',
+                            light: '#ffffff'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Montserrat', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f5f5f0; color: #2e2e2e; user-select: none; }
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .hidden-force { display: none !important; }
+        
+        /* Input Styles */
+        .input-manual { background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 4px; font-size: 11px; width: 60px; text-align: right; font-family: monospace; color: #334155; }
+        .input-budget { border-left: 3px solid #192a3e; font-weight: bold; width: 75px; }
+        .select-manual { background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px; font-size: 10px; max-width: 110px; cursor: pointer; color: #334155; }
+        
+        /* Layout */
+        .group-header { background-color: #e2e8f0; color: #475569; font-weight: 800; font-size: 11px; letter-spacing: 1px; padding: 10px 16px; text-transform: uppercase; border-top: 1px solid #94a3b8; }
+        .badge-funnel { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; display: inline-block; min-width: 60px; text-align: center; color: white; text-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .btn-icon { color: #94a3b8; cursor: pointer; transition: color 0.2s; padding: 4px; }
+        .btn-icon:hover { color: #192a3e; }
+        .btn-icon.delete:hover { color: #ef4444; }
+        .calc-cell { font-family: monospace; font-size: 11px; color: #64748b; text-align: right; padding-right: 8px; }
+        .custom-checkbox input:checked + div { background-color: currentColor; border-color: currentColor; }
+        .row-disabled { opacity: 0.4; background-color: #f1f5f9; }
+        .action-card { transition: all 0.3s ease; border-left: 4px solid transparent; }
+        .action-card:hover { transform: translateX(5px); border-left-color: #722f37; }
+
+        /* --- GANTT STYLES --- */
+        .gantt-container { position: relative; width: 100%; overflow-x: auto; background: white; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .gantt-header { display: flex; border-bottom: 1px solid #e2e8f0; background: #f8fafc; min-width: 100%; cursor: grab; }
+        .gantt-header:active { cursor: grabbing; }
+        .gantt-month { flex: 1; text-align: center; padding: 8px; font-weight: 700; font-size: 11px; text-transform: uppercase; color: #64748b; border-right: 1px solid #e2e8f0; min-width: 100px; }
+        
+        .gantt-body { position: relative; min-height: 200px; min-width: 100%; }
+        .gantt-grid-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; pointer-events: none; z-index: 0; }
+        .gantt-col { flex: 1; border-right: 1px dashed #f1f5f9; height: 100%; min-width: 25px; } 
+        
+        .gantt-row { position: relative; height: 40px; border-bottom: 1px solid #f1f5f9; display: flex; items-center; z-index: 10; }
+        .gantt-label { width: 220px; min-width: 220px; padding: 0 16px; font-size: 11px; font-weight: 600; color: #334155; border-right: 1px solid #e2e8f0; background: white; z-index: 20; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: sticky; left: 0; }
+        .gantt-track { flex-grow: 1; position: relative; height: 100%; overflow: hidden; }
+        
+        .gantt-bar { 
+            position: absolute; top: 8px; height: 24px; border-radius: 4px; 
+            color: white; font-size: 10px; display: flex; items-center; justify-content: center; 
+            cursor: grab; box-shadow: 0 2px 4px rgba(0,0,0,0.15); font-weight: 600; letter-spacing: 0.5px;
+            transition: box-shadow 0.2s; white-space: nowrap; padding: 0 8px; overflow: hidden;
+        }
+        .gantt-bar:active { cursor: grabbing; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 50; }
+        .gantt-handle {
+            position: absolute; top: 0; bottom: 0; right: 0; width: 10px; 
+            cursor: col-resize; background: rgba(255,255,255,0.3); border-radius: 0 4px 4px 0;
+        }
+        .gantt-handle:hover { background: rgba(255,255,255,0.6); }
+
+    </style>
+</head>
+<body class="font-sans antialiased text-xs md:text-sm pb-32">
+
+    <!-- Header -->
+    <header class="bg-pdt-blue text-white py-5 px-6 shadow-lg sticky top-0 z-50">
+        <div class="max-w-[1800px] mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="font-serif text-xl md:text-2xl tracking-widest font-bold">MÉDIA PLANNING MANUEL</h1>
+                <p class="text-[10px] md:text-xs text-gray-300 tracking-wider">SAISIE MANUELLE</p>
+            </div>
+            <div class="flex gap-4 items-center">
+                <button onclick="resetData()" class="bg-pdt-merlot hover:bg-red-800 text-white px-3 py-1 rounded text-[10px] font-bold uppercase transition-colors">
+                    <i class="fas fa-undo mr-1"></i> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1800px] mx-auto px-4 py-6 space-y-8">
+
+        <!-- DASHBOARD -->
+        <section class="bg-white rounded-xl card-shadow p-6 border-l-4 border-pdt-merlot">
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-6 text-center divide-x divide-gray-100">
+                <div class="px-2">
+                    <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Budget Total</div>
+                    <div id="headBudget" class="text-3xl font-bold text-gray-800">0 €</div>
+                </div>
+                <div class="px-2">
+                    <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">CA Projeté</div>
+                    <div id="headRevenue" class="text-3xl font-bold text-green-700">0 €</div>
+                </div>
+                <div class="px-2 bg-pdt-blue/5 rounded">
+                    <div class="text-[10px] text-pdt-blue uppercase font-bold mb-1 mt-2">ROI Global</div>
+                    <div id="headROI" class="text-3xl font-bold text-pdt-blue">0.00x</div>
+                </div>
+                <div class="px-2">
+                    <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Trafic (Visites)</div>
+                    <div id="headTraffic" class="text-xl font-bold text-pdt-placid">0</div>
+                </div>
+                <div class="px-2">
+                    <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Conversions</div>
+                    <div id="headSales" class="text-xl font-bold text-gray-600">0</div>
+                </div>
+                <div class="px-2">
+                    <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Panier Moyen</div>
+                    <div id="headAOV" class="text-xl font-bold text-gray-600">0 €</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MAIN TABLE -->
+        <section class="bg-white rounded-xl card-shadow overflow-hidden border border-gray-200">
+            <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="font-serif font-bold text-pdt-blue pl-2"><i class="fas fa-edit mr-2"></i>Construction Budgétaire</h3>
+            </div>
+            <div class="overflow-x-auto max-h-[500px]">
+                <table class="w-full text-left border-collapse min-w-[1600px]">
+                    <thead class="bg-white text-gray-600 font-bold text-[10px] uppercase tracking-wider border-b-2 border-gray-300 sticky top-0 z-20">
+                        <tr>
+                            <th class="p-3 w-10 text-center border-r border-gray-200 bg-gray-50">On</th>
+                            <th class="p-3 w-40">Levier</th>
+                            <th class="p-3 w-24 text-center">Funnel</th>
+                            <th class="p-3 w-32">Plateforme</th>
+                            <th class="p-3 w-32">Format</th>
+                            <th class="p-3 w-24 text-center">Modèle</th>
+                            <th class="p-3 text-right bg-yellow-50/50 border-l border-gray-200">Budget (€)</th>
+                            <th class="p-3 text-right bg-yellow-50/50">Coût U.</th>
+                            <th class="p-3 text-right bg-yellow-50/50">CTR</th>
+                            <th class="p-3 text-right bg-yellow-50/50">Conv.</th>
+                            <th class="p-3 text-right bg-yellow-50/50">AOV</th>
+                            <th class="p-3 text-right text-gray-400 border-l border-gray-200">Vol.</th>
+                            <th class="p-3 text-right text-pdt-placid">Trafic</th>
+                            <th class="p-3 text-right text-gray-600">Ventes</th>
+                            <th class="p-3 text-right text-green-700">CA (€)</th>
+                            <th class="p-3 text-right text-pdt-blue">ROI</th>
+                            <th class="p-3 w-16 text-center border-l border-gray-200">Act.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="text-xs divide-y divide-gray-100 font-medium"></tbody>
+                    <tfoot class="bg-gray-100 font-bold text-gray-800 border-t-2 border-gray-300">
+                        <tr>
+                            <td colspan="6" class="p-4 text-right uppercase tracking-wider text-[10px]">Totaux (Actifs)</td>
+                            <td class="p-4 text-right border-l border-gray-300" id="ftBudget">0 €</td>
+                            <td colspan="3" class="bg-gray-100"></td>
+                            <td class="p-4 text-right text-gray-500" id="ftAOV">-</td>
+                            <td class="p-4 text-right text-gray-400 border-l border-gray-300" id="ftVol">-</td>
+                            <td class="p-4 text-right text-pdt-placid" id="ftTraffic">0</td>
+                            <td class="p-4 text-right text-gray-600" id="ftSales">0</td>
+                            <td class="p-4 text-right text-green-700" id="ftRevenue">0 €</td>
+                            <td class="p-4 text-right text-pdt-blue" id="ftROI">0.00</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </section>
+
+        <!-- CALENDAR SECTION -->
+        <section id="timelineSection" class="space-y-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <span class="bg-pdt-blue text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg"><i class="fas fa-calendar-alt"></i></span>
+                    <h3 class="text-xl font-serif text-pdt-blue font-bold">Calendrier d'Activation Interactif</h3>
+                </div>
+                <div class="flex gap-2 bg-white p-1 rounded border border-gray-300 items-center">
+                    <span class="text-[9px] text-gray-400 mr-2 uppercase font-bold tracking-wider"><i class="fas fa-arrows-alt-h mr-1"></i>Vue Année</span>
+                    <div class="h-4 w-px bg-gray-200 mx-1"></div>
+                    <button onclick="removeMonth()" class="hover:bg-gray-100 text-pdt-merlot px-3 py-1 rounded text-xs font-bold transition-colors">
+                        <i class="fas fa-minus mr-1"></i>
+                    </button>
+                    <button onclick="resetTimeline()" class="hover:bg-gray-100 text-gray-600 px-3 py-1 rounded text-xs font-bold transition-colors" title="Année Complète">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button onclick="addMonth()" class="hover:bg-gray-100 text-pdt-blue px-3 py-1 rounded text-xs font-bold transition-colors">
+                        <i class="fas fa-plus mr-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl card-shadow p-6 border border-gray-200">
+                <div id="ganttChart" class="gantt-container select-none">
+                    <!-- Dynamic Gantt -->
+                </div>
+                <div class="mt-2 text-[10px] text-gray-400 italic text-right flex justify-between">
+                    <span>
+                        <i class="fas fa-info-circle mr-1"></i> Les lignes du tableau sont synchronisées avec le calendrier.
+                    </span>
+                    <span id="ganttInfo">--</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- DETAILS & CHARTS -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+                <div class="flex items-center gap-4">
+                    <h3 class="text-lg font-serif text-gray-500 font-bold">Détails Opérationnels</h3>
+                    <div class="h-px bg-gray-200 flex-grow"></div>
+                </div>
+                <div id="cardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+            <div class="lg:col-span-1 space-y-6">
+                <!-- CHART 1 -->
+                <div class="bg-white p-5 rounded-lg card-shadow">
+                    <h4 class="font-bold text-pdt-blue mb-4 text-xs uppercase">Répartition Budgétaire</h4>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="allocChart"></canvas>
+                    </div>
+                </div>
+                <!-- CHART 2 -->
+                <div class="bg-white p-5 rounded-lg card-shadow">
+                    <h4 class="font-bold text-pdt-blue mb-4 text-xs uppercase">CA Généré par Levier</h4>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="revChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- CONSTANTS ---
+        const ALL_MONTHS_LIB = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+        
+        // --- DATA ---
+        const PLATFORM_DATA = {
+            'Meta': { formats: ['Reels', 'Stories', 'Feed', 'Collection', 'DPA'], defaultCost: 4.5 },
+            'TikTok': { formats: ['Top View', 'In-Feed', 'Spark'], defaultCost: 2.5 },
+            'Pinterest': { formats: ['Idea Pins', 'Carousel', 'Standard'], defaultCost: 3.0 },
+            'Snapchat': { formats: ['Commercials', 'Story Ads', 'Snap Ad'], defaultCost: 2.0 },
+            'Google Ads': { formats: ['Search Generic', 'Search Brand', 'P-Max', 'Shopping', 'Demand Gen'], defaultCost: 0.85 },
+            'Youtube': { formats: ['Bumper 6s', 'In-Stream', 'Shorts'], defaultCost: 6.5 },
+            'TV': { formats: ['Spot 20s', 'Sponsoring'], defaultCost: 5000 },
+            'Radio': { formats: ['Spot Audio'], defaultCost: 12 },
+            'Street': { formats: ['Clean Tag', 'Flyering'], defaultCost: 2000 },
+            'Influ': { formats: ['Reels Collab', 'Story Set'], defaultCost: 1500 },
+            'Email': { formats: ['Newsletter', 'Trigger'], defaultCost: 300 }
+        };
+
+        const BLUEPRINTS = {
+            social_tofu: { cat: "1. MÉDIAS DIGITAUX", name: 'Social Ads', funnel: 'TOFU', color: '#ec4899', platforms: ['Meta', 'TikTok', 'Snapchat', 'Pinterest'], defaultModel: 'CPM', defaultCTR: 0.8, defaultCR: 0.5, defaultAOV: 90 }, 
+            social_mofu: { cat: "1. MÉDIAS DIGITAUX", name: 'Social Ads', funnel: 'MOFU', color: '#d946ef', platforms: ['Meta', 'Pinterest', 'TikTok'], defaultModel: 'CPC', defaultCTR: 1.5, defaultCR: 1.5, defaultAOV: 130 }, 
+            social_bofu: { cat: "1. MÉDIAS DIGITAUX", name: 'Social Ads', funnel: 'BOFU', color: '#8b5cf6', platforms: ['Meta'], defaultModel: 'CPC', defaultCTR: 2.0, defaultCR: 4.5, defaultAOV: 150 }, 
+            google_aware: { cat: "1. MÉDIAS DIGITAUX", name: 'Google Ads', funnel: 'Awareness', color: '#ef4444', platforms: ['Youtube', 'Google Ads'], defaultModel: 'CPM', defaultCTR: 0.5, defaultCR: 0.3, defaultAOV: 100 }, 
+            google_consid: { cat: "1. MÉDIAS DIGITAUX", name: 'Google Ads', funnel: 'Consid.', color: '#3b82f6', platforms: ['Google Ads'], defaultModel: 'CPC', defaultCTR: 3.0, defaultCR: 2.0, defaultAOV: 160 }, 
+            google_conv: { cat: "1. MÉDIAS DIGITAUX", name: 'Google Ads', funnel: 'Conversion', color: '#10b981', platforms: ['Google Ads'], defaultModel: 'CPC', defaultCTR: 4.0, defaultCR: 3.5, defaultAOV: 180 }, 
+            tv: { cat: "2. MÉDIAS TRADITIONNELS", name: 'TV', funnel: 'Mass', color: '#1e293b', platforms: ['TV'], defaultModel: 'Flat', defaultCTR: 0, defaultCR: 0.8, defaultAOV: 160 }, 
+            radio: { cat: "2. MÉDIAS TRADITIONNELS", name: 'Radio', funnel: 'Mass', color: '#64748b', platforms: ['Radio'], defaultModel: 'CPM', defaultCTR: 0.2, defaultCR: 0.5, defaultAOV: 140 }, 
+            influ: { cat: "3. HORS MÉDIA", name: 'Influence', funnel: 'Prescription', color: '#f59e0b', platforms: ['Influ'], defaultModel: 'Flat', defaultCTR: 0, defaultCR: 1.5, defaultAOV: 125 }, 
+            street: { cat: "3. HORS MÉDIA", name: 'Guérilla', funnel: 'Buzz', color: '#eab308', platforms: ['Street'], defaultModel: 'Flat', defaultCTR: 0, defaultCR: 5.0, defaultAOV: 140 }, 
+            crm: { cat: "3. HORS MÉDIA", name: 'CRM', funnel: 'Loyalty', color: '#722f37', platforms: ['Email'], defaultModel: 'Flat', defaultCTR: 0, defaultCR: 4.0, defaultAOV: 190 } 
+        };
+
+        // --- STATE ---
+        let ROWS = [];
+        let CURRENT_MONTHS = [...ALL_MONTHS_LIB]; 
+        let TIMELINE_DATA = {}; // { rowId: { absStart: 8, duration: 4 } }
+        let VIEW_START_MONTH_IDX = 0; // Jan = 0
+        
+        let chartAlloc = null;
+        let chartRev = null;
+
+        // --- DOM SAFE HELPER ---
+        function safeSetText(id, val) {
+            const el = document.getElementById(id);
+            if(el) el.textContent = val;
+        }
+
+        // --- INIT ---
+        function initData() {
+            Object.keys(BLUEPRINTS).forEach(key => addLine(key, false));
+            // Default active
+            ROWS.forEach(r => {
+                if(r.type.includes('tofu') || r.type.includes('aware')) r.budget = 5000;
+                if(r.type.includes('bofu') || r.type.includes('conv')) r.budget = 8000;
+            });
+            initTimelineData();
+        }
+
+        function initTimelineData() {
+            // Base Start is MARCH (Week 8)
+            const baseStart = 8; 
+            ROWS.forEach(row => {
+                if(!TIMELINE_DATA[row.id]) {
+                    const bp = BLUEPRINTS[row.type];
+                    let offset = 0, duration = 4;
+                    // Logic: Lancement in March (Week 8)
+                    if(bp.funnel === 'TOFU' || bp.funnel === 'Awareness') { offset = 0; duration = 6; }
+                    else if(bp.funnel.includes('MOFU') || bp.funnel.includes('Consid')) { offset = 2; duration = 8; }
+                    else { offset = 4; duration = 8; }
+                    
+                    TIMELINE_DATA[row.id] = { absStart: baseStart + offset, duration: duration };
+                }
+            });
+        }
+
+        function addLine(type, isDuplicate = false, sourceRow = null) {
+            const bp = BLUEPRINTS[type];
+            const uniqueId = Math.random().toString(36).substr(2, 9);
+            
+            let platform = bp.platforms[0];
+            let format = PLATFORM_DATA[platform].formats[0];
+            let cost = PLATFORM_DATA[platform].defaultCost;
+            let model = bp.defaultModel;
+            let ctr = bp.defaultCTR;
+            let cr = bp.defaultCR;
+            let aov = bp.defaultAOV;
+            let budget = 0;
+            let active = true;
+
+            if(sourceRow) {
+                platform = sourceRow.platform; format = sourceRow.format; cost = sourceRow.unitCost; model = sourceRow.model;
+                ctr = sourceRow.ctr; cr = sourceRow.cr; aov = sourceRow.aov; budget = sourceRow.budget; active = sourceRow.active;
+            }
+
+            const newRow = { id: uniqueId, type: type, platform: platform, format: format, model: model, budget: budget, unitCost: cost, ctr: ctr, cr: cr, aov: aov, active: active };
+
+            if(sourceRow) {
+                const idx = ROWS.findIndex(r => r.id === sourceRow.id);
+                ROWS.splice(idx + 1, 0, newRow);
+            } else {
+                ROWS.push(newRow);
+            }
+            if(!TIMELINE_DATA[uniqueId]) {
+                TIMELINE_DATA[uniqueId] = { absStart: 8, duration: 4 }; // Default to March start
+            }
+        }
+
+        function resetData() {
+            ROWS = [];
+            initData();
+            resetTimeline();
+            renderTable();
+            recalculate();
+        }
+
+        // --- GANTT LOGIC ---
+        function getMonthName(idx) {
+            const normalized = ((idx % 12) + 12) % 12;
+            return ALL_MONTHS_LIB[normalized];
+        }
+
+        function addMonth() {
+            const lastMonthName = CURRENT_MONTHS[CURRENT_MONTHS.length - 1];
+            let idx = ALL_MONTHS_LIB.indexOf(lastMonthName);
+            let nextIdx = (idx + 1) % 12;
+            CURRENT_MONTHS.push(ALL_MONTHS_LIB[nextIdx]);
+            renderGantt();
+        }
+
+        function removeMonth() {
+            if(CURRENT_MONTHS.length > 1) {
+                CURRENT_MONTHS.pop();
+                renderGantt();
+            }
+        }
+
+        function resetTimeline() {
+            // Reset to FULL YEAR (Jan - Dec)
+            CURRENT_MONTHS = [...ALL_MONTHS_LIB]; 
+            VIEW_START_MONTH_IDX = 0; // Start at Jan
+            initTimelineData(); // Reset bar positions to March base
+            renderGantt();
+        }
+
+        function renderGantt() {
+            const container = document.getElementById('ganttChart');
+            container.innerHTML = '';
+            
+            const weeksPerMonth = 4;
+            const totalWeeks = CURRENT_MONTHS.length * weeksPerMonth;
+            // Current view always starts at index 0 of current_months array relative to absolute year?
+            // To support dragging months (Jan -> Feb), we need to know the offset of CURRENT_MONTHS[0] in ALL_MONTHS
+            const startMonthName = CURRENT_MONTHS[0];
+            const startMonthIndex = ALL_MONTHS_LIB.indexOf(startMonthName); // 0 for Jan
+            const absoluteViewStartWeek = startMonthIndex * weeksPerMonth;
+
+            const headerLabelWidth = 220;
+            
+            // Header
+            const header = document.createElement('div');
+            header.className = 'gantt-header';
+            const spacer = document.createElement('div');
+            spacer.style.cssText = `width:${headerLabelWidth}px; min-width:${headerLabelWidth}px; border-right:1px solid #e2e8f0; background:#fff; position:sticky; left:0; z-index:30; display:flex; align-items:center; padding-left:10px; font-size:10px; color:#9ca3af;`;
+            spacer.innerHTML = '<i class="fas fa-arrows-alt-h mr-2"></i> Pan';
+            header.appendChild(spacer);
+            
+            CURRENT_MONTHS.forEach(m => {
+                const d = document.createElement('div'); d.className='gantt-month'; d.textContent = m; header.appendChild(d);
+            });
+            
+            // Header Drag Logic (Pan)
+            header.onmousedown = (e) => {
+                e.preventDefault();
+                const startX = e.clientX;
+                const initialStartIdx = ALL_MONTHS_LIB.indexOf(CURRENT_MONTHS[0]);
+                let lastShift = 0;
+                
+                document.body.style.cursor = 'grabbing';
+
+                const onMove = (mv) => {
+                    const deltaPx = mv.clientX - startX;
+                    const shift = Math.round(deltaPx / -100); 
+                    if(shift !== lastShift) {
+                        lastShift = shift;
+                        let newStartIdx = initialStartIdx + shift;
+                        // Normalize
+                        newStartIdx = ((newStartIdx % 12) + 12) % 12;
+                        
+                        // Rebuild CURRENT_MONTHS based on new start and current length
+                        const len = CURRENT_MONTHS.length;
+                        const newMonths = [];
+                        for(let i=0; i<len; i++) {
+                            newMonths.push(getMonthName(newStartIdx + i));
+                        }
+                        CURRENT_MONTHS = newMonths;
+                        renderGantt();
+                    }
+                };
+                
+                const onUp = () => {
+                    document.body.style.cursor = 'default';
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                };
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            };
+
+            container.appendChild(header);
+
+            // Body
+            const body = document.createElement('div');
+            body.className = 'gantt-body';
+            
+            const bg = document.createElement('div'); bg.className='gantt-grid-bg';
+            const bgSpacer = document.createElement('div');
+            bgSpacer.style.cssText = `width:${headerLabelWidth}px; min-width:${headerLabelWidth}px; border-right:1px solid #e2e8f0; flex-shrink:0;`;
+            bg.appendChild(bgSpacer);
+            
+            for(let i=0; i<totalWeeks; i++) {
+                const col = document.createElement('div'); col.className='gantt-col'; bg.appendChild(col);
+            }
+            body.appendChild(bg);
+
+            // Rows
+            ROWS.forEach(row => {
+                if(row.active) {
+                    const bp = BLUEPRINTS[row.type];
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'gantt-row';
+                    
+                    const label = document.createElement('div');
+                    label.className = 'gantt-label';
+                    label.innerHTML = `<div class="truncate">${bp.name} <span class="text-gray-400 text-[9px]">(${row.platform})</span></div>`;
+                    rowDiv.appendChild(label);
+
+                    const track = document.createElement('div');
+                    track.className = 'gantt-track';
+                    
+                    const barData = TIMELINE_DATA[row.id];
+                    
+                    // Calc relative position to view start
+                    const relativeStart = barData.absStart - absoluteViewStartWeek;
+                    
+                    // Only draw if roughly in view or crossing view
+                    if(relativeStart + barData.duration > -5 && relativeStart < totalWeeks + 5) {
+                        const bar = document.createElement('div');
+                        bar.className = 'gantt-bar';
+                        bar.style.backgroundColor = bp.color;
+                        bar.textContent = bp.funnel;
+                        
+                        const updatePos = () => {
+                            const curRelStart = barData.absStart - absoluteViewStartWeek;
+                            const unitPct = 100 / totalWeeks;
+                            bar.style.left = (curRelStart * unitPct) + '%';
+                            bar.style.width = (barData.duration * unitPct) + '%';
+                        };
+                        updatePos();
+
+                        const handle = document.createElement('div');
+                        handle.className = 'gantt-handle';
+                        bar.appendChild(handle);
+
+                        // Bar Drag
+                        bar.onmousedown = (e) => {
+                            if(e.target === handle) return;
+                            e.preventDefault();
+                            const trackRect = track.getBoundingClientRect();
+                            const startX = e.clientX;
+                            const initialAbsStart = barData.absStart;
+                            
+                            const onMove = (mv) => {
+                                const deltaPx = mv.clientX - startX;
+                                const pxPerUnit = trackRect.width / totalWeeks;
+                                const deltaUnits = deltaPx / pxPerUnit;
+                                barData.absStart = Math.round(initialAbsStart + deltaUnits);
+                                updatePos();
+                            };
+                            
+                            const onUp = () => {
+                                document.removeEventListener('mousemove', onMove);
+                                document.removeEventListener('mouseup', onUp);
+                            };
+                            document.addEventListener('mousemove', onMove);
+                            document.addEventListener('mouseup', onUp);
+                        };
+
+                        // Resize
+                        handle.onmousedown = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const trackRect = track.getBoundingClientRect();
+                            const startX = e.clientX;
+                            const initialDur = barData.duration;
+                            
+                            const onMove = (mv) => {
+                                const deltaPx = mv.clientX - startX;
+                                const pxPerUnit = trackRect.width / totalWeeks;
+                                const deltaUnits = deltaPx / pxPerUnit;
+                                let newDur = Math.round(initialDur + deltaUnits);
+                                if(newDur < 1) newDur = 1;
+                                barData.duration = newDur;
+                                updatePos();
+                            };
+                            
+                            const onUp = () => {
+                                document.removeEventListener('mousemove', onMove);
+                                document.removeEventListener('mouseup', onUp);
+                            };
+                            document.addEventListener('mousemove', onMove);
+                            document.addEventListener('mouseup', onUp);
+                        };
+
+                        track.appendChild(bar);
+                    }
+
+                    rowDiv.appendChild(track);
+                    body.appendChild(rowDiv);
+                }
+            });
+
+            container.appendChild(body);
+            document.getElementById('ganttInfo').textContent = `${CURRENT_MONTHS[0]} - ${CURRENT_MONTHS[CURRENT_MONTHS.length-1]} (${totalWeeks} Semaines)`;
+        }
+
+        // --- RENDER TABLE & REST ---
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            const groups = {};
+            ROWS.forEach(row => {
+                const cat = BLUEPRINTS[row.type].cat;
+                if(!groups[cat]) groups[cat] = [];
+                groups[cat].push(row);
+            });
+
+            for (const [cat, lines] of Object.entries(groups)) {
+                const trHead = document.createElement('tr');
+                trHead.innerHTML = `<td colspan="17" class="group-header">${cat}</td>`;
+                tbody.appendChild(trHead);
+
+                lines.forEach(row => {
+                    const bp = BLUEPRINTS[row.type];
+                    const tr = document.createElement('tr');
+                    tr.className = `border-b border-gray-100 hover:bg-gray-50 transition-all ${row.active ? '' : 'row-disabled'}`;
+
+                    let check = `<label class="custom-checkbox relative flex justify-center items-center cursor-pointer"><input type="checkbox" class="opacity-0 absolute w-full h-full z-10 cursor-pointer" ${row.active ? 'checked' : ''} onchange="toggleActive('${row.id}')"><div class="w-4 h-4 border-2 border-gray-300 rounded relative transition-colors" style="color:${bp.color}"></div></label>`;
+                    let platSelect = `<select class="select-manual" onchange="updateRow('${row.id}', 'platform', this.value)">${bp.platforms.map(p => `<option value="${p}" ${row.platform === p ? 'selected' : ''}>${p}</option>`).join('')}</select>`;
+                    const formats = PLATFORM_DATA[row.platform] ? PLATFORM_DATA[row.platform].formats : ['Standard'];
+                    let fmtSelect = `<select class="select-manual" onchange="updateRow('${row.id}', 'format', this.value)">${formats.map(f => `<option value="${f}" ${row.format === f ? 'selected' : ''}>${f}</option>`).join('')}</select>`;
+                    let modSelect = `<select class="select-manual" style="width:50px" onchange="updateRow('${row.id}', 'model', this.value)"><option value="CPM" ${row.model==='CPM'?'selected':''}>CPM</option><option value="CPC" ${row.model==='CPC'?'selected':''}>CPC</option><option value="Flat" ${row.model==='Flat'?'selected':''}>Flat</option></select>`;
+                    let inpBudget = `<input type="number" class="input-manual input-budget" value="${row.budget}" onchange="updateRow('${row.id}', 'budget', this.value)">`;
+                    let inpCost = `<input type="number" step="0.01" class="input-manual" value="${row.unitCost}" onchange="updateRow('${row.id}', 'unitCost', this.value)">`;
+                    let inpCtr = `<input type="number" step="0.1" class="input-manual" value="${row.ctr}" onchange="updateRow('${row.id}', 'ctr', this.value)">`;
+                    let inpCr = `<input type="number" step="0.1" class="input-manual" value="${row.cr}" onchange="updateRow('${row.id}', 'cr', this.value)">`;
+                    let inpAov = `<input type="number" step="1" class="input-manual" value="${row.aov}" onchange="updateRow('${row.id}', 'aov', this.value)">`;
+                    let actions = `<i class="fas fa-copy btn-icon" onclick="duplicate('${row.id}')" title="Dupliquer"></i> <i class="fas fa-trash-alt btn-icon delete" onclick="remove('${row.id}')" title="Supprimer"></i>`;
+
+                    tr.innerHTML = `
+                        <td class="p-3 text-center border-r border-gray-200 bg-gray-50">${check}</td>
+                        <td class="p-3 font-medium text-pdt-blue text-[11px] flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background-color:${bp.color}"></span>${bp.name}</td>
+                        <td class="p-3 text-center"><span class="badge-funnel" style="background:${bp.color}">${bp.funnel}</span></td>
+                        <td class="p-3">${platSelect}</td><td class="p-3">${fmtSelect}</td><td class="p-3 text-center">${modSelect}</td>
+                        <td class="p-3 text-right bg-yellow-50/50 border-l border-gray-200">${inpBudget}</td>
+                        <td class="p-3 text-right bg-yellow-50/50">${inpCost}</td><td class="p-3 text-right bg-yellow-50/50">${inpCtr}</td><td class="p-3 text-right bg-yellow-50/50">${inpCr}</td><td class="p-3 text-right bg-yellow-50/50">${inpAov}</td>
+                        <td class="p-3 calc-cell border-l border-gray-200" id="res-vol-${row.id}">-</td>
+                        <td class="p-3 calc-cell text-pdt-placid font-bold" id="res-traf-${row.id}">-</td>
+                        <td class="p-3 calc-cell text-gray-600" id="res-sales-${row.id}">-</td>
+                        <td class="p-3 calc-cell text-green-700 font-bold" id="res-rev-${row.id}">-</td>
+                        <td class="p-3 calc-cell text-pdt-blue font-bold" id="res-roi-${row.id}">-</td>
+                        <td class="p-3 text-center border-l border-gray-200">${actions}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        // --- UPDATES ---
+        function toggleActive(id) { const row=ROWS.find(r=>r.id===id); if(row){row.active=!row.active; renderTable(); recalculate(); renderGantt();} }
+        function updateRow(id,f,v) { const row=ROWS.find(r=>r.id===id); if(row){ if(f==='platform'){row.platform=v; row.format=PLATFORM_DATA[v].formats[0]; renderTable();} else if(f==='format'||f==='model'){row[f]=v;} else {row[f]=parseFloat(v)||0;} recalculate(); renderGantt(); } } // Added renderGantt here for label update
+        function duplicate(id) { const r=ROWS.find(x=>x.id===id); if(r){addLine(r.type,true,r); renderTable(); recalculate(); renderGantt();} }
+        function remove(id) { const i=ROWS.findIndex(x=>x.id===id); if(i>-1){ROWS.splice(i,1); delete TIMELINE_DATA[id]; renderTable(); recalculate(); renderGantt();} }
+
+        // --- CALC ---
+        function recalculate() {
+            let tBud=0, tRev=0, tTraf=0, tSales=0, tVol=0;
+            let labels=[], dAlloc=[], dRev=[], cols=[];
+
+            ROWS.forEach(row => {
+                if(!row.active) { 
+                    ['vol','traf','sales','rev','roi'].forEach(k => safeSetText(`res-${k}-${row.id}`, '-'));
+                    return; 
+                }
+                
+                let vol=0, traf=0, cost=row.unitCost>0?row.unitCost:1;
+                if(row.model==='CPM'){ vol=(row.budget/cost)*1000; traf=vol*(row.ctr/100); }
+                else if(row.model==='CPC'){ traf=row.budget/cost; vol=traf/((row.ctr>0?row.ctr:1)/100); }
+                else { vol=row.budget/5*1000; traf=vol*(row.ctr/100); }
+
+                let sales=traf*(row.cr/100), rev=sales*row.aov, roi=row.budget>0?rev/row.budget:0;
+                tBud+=row.budget; tRev+=rev; tTraf+=traf; tSales+=sales; tVol+=vol;
+
+                safeSetText(`res-vol-${row.id}`, formatCompact(vol));
+                safeSetText(`res-traf-${row.id}`, formatCompact(traf));
+                safeSetText(`res-sales-${row.id}`, Math.round(sales));
+                safeSetText(`res-rev-${row.id}`, formatMoney(rev));
+                safeSetText(`res-roi-${row.id}`, roi.toFixed(2)+'x');
+
+                if(row.budget>0) { labels.push(BLUEPRINTS[row.type].name); dAlloc.push(row.budget); dRev.push(rev); cols.push(BLUEPRINTS[row.type].color); }
+            });
+
+            const gROI=tBud>0?tRev/tBud:0, gAOV=tSales>0?tRev/tSales:0;
+            ['headBudget','ftBudget'].forEach(i=>safeSetText(i, formatMoney(tBud)));
+            ['headRevenue','ftRevenue'].forEach(i=>safeSetText(i, formatMoney(tRev)));
+            ['headROI','ftROI'].forEach(i=>safeSetText(i, gROI.toFixed(2)+'x'));
+            ['headTraffic','ftTraffic'].forEach(i=>safeSetText(i, formatCompact(tTraf)));
+            ['headSales','ftSales'].forEach(i=>safeSetText(i, Math.round(tSales)));
+            ['headAOV','ftAOV'].forEach(i=>safeSetText(i, Math.round(gAOV)+' €'));
+
+            updateCharts(labels,dAlloc,dRev,cols);
+            renderDetails();
+        }
+
+        // --- RENDER OTHERS ---
+        function renderDetails() {
+            const c=document.getElementById('cardsContainer'); c.innerHTML='';
+            ROWS.forEach(r => {
+                if(r.budget>0 && r.active) {
+                    const bp=BLUEPRINTS[r.type];
+                    const d=document.createElement('div'); d.className="bg-white p-3 rounded shadow border-l-4 action-card"; d.style.borderLeftColor=bp.color;
+                    d.innerHTML=`<div class="flex justify-between"><span class="font-bold text-gray-700 text-xs">${bp.name}</span><span class="text-[9px] px-1 rounded text-white" style="background:${bp.color}">${bp.funnel}</span></div><div class="text-[10px] text-gray-500 mt-1">${r.platform} - ${r.format}</div><div class="text-right text-xs font-mono text-gray-400 mt-2">${formatMoney(r.budget)}</div>`;
+                    c.appendChild(d);
+                }
+            });
+        }
+
+        function updateCharts(l,a,r,c) {
+            const ac=document.getElementById('allocChart'); const rc=document.getElementById('revChart');
+            if(!ac || !rc) return;
+
+            if(!chartAlloc) {
+                chartAlloc=new Chart(ac,{type:'doughnut',data:{labels:l,datasets:[{data:a,backgroundColor:c,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:9}}}}}});
+            } else {
+                chartAlloc.data.labels=l; chartAlloc.data.datasets[0].data=a; chartAlloc.data.datasets[0].backgroundColor=c; chartAlloc.update();
+            }
+
+            if(!chartRev) {
+                chartRev=new Chart(rc,{type:'bar',data:{labels:l,datasets:[{label:'CA',data:r,backgroundColor:c}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{font:{size:9}}}}}});
+            } else {
+                chartRev.data.labels=l; chartRev.data.datasets[0].data=r; chartRev.data.datasets[0].backgroundColor=c; chartRev.update();
+            }
+        }
+
+        function formatMoney(v){return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);}
+        function formatCompact(v){return new Intl.NumberFormat('fr-FR',{notation:"compact"}).format(v);}
+
+        window.onload = () => { initData(); renderTable(); recalculate(); renderGantt(); };
+    </script>
+</body>
+</html>
