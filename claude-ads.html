@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harucon Ventures — Agent Claude Ads</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg: #0a0e1a;
+  --surface: #111827;
+  --surface2: #1a2236;
+  --border: #1e2a42;
+  --border-active: #2563eb;
+  --accent: #2563eb;
+  --accent-glow: rgba(37,99,235,0.15);
+  --accent-light: #60a5fa;
+  --text: #e2e8f0;
+  --text-dim: #7a8ba8;
+  --text-muted: #4a5b78;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --orange: #f97316;
+}
+
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* HEADER */
+.header {
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, rgba(37,99,235,0.04) 0%, transparent 100%);
+}
+.header-left { display: flex; align-items: center; gap: 16px; }
+.logo-mark {
+  width: 42px; height: 42px;
+  background: var(--accent);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 18px; color: white;
+  box-shadow: 0 0 20px rgba(37,99,235,0.3);
+}
+.header-title { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+.header-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.header-badge {
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  color: var(--accent-light); background: var(--accent-glow);
+  padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(37,99,235,0.2);
+}
+.icon-btn {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text-dim); cursor: pointer; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.icon-btn:hover { color: var(--text); border-color: var(--text-muted); }
+
+/* LAYOUT */
+.app { display: flex; height: calc(100vh - 89px); }
+
+/* SIDEBAR */
+.sidebar {
+  width: 320px; min-width: 320px;
+  border-right: 1px solid var(--border);
+  overflow-y: auto; padding: 16px;
+  background: var(--surface);
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.section-label {
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text-muted); padding: 12px 8px 8px;
+}
+
+.agent-card {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px; border-radius: 10px;
+  cursor: pointer; transition: all 0.15s;
+  border: 1px solid transparent;
+  margin-bottom: 4px;
+}
+.agent-card:hover { background: var(--surface2); }
+.agent-card.active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+}
+.agent-icon {
+  width: 36px; height: 36px; min-width: 36px;
+  border-radius: 8px; display: flex;
+  align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.agent-name { font-size: 13px; font-weight: 600; line-height: 1.3; }
+.agent-desc { font-size: 11px; color: var(--text-dim); line-height: 1.4; margin-top: 2px; }
+
+/* MAIN AREA */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* CHAT HEADER */
+.chat-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface);
+}
+.chat-header-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; background: var(--accent-glow); color: var(--accent-light);
+}
+.chat-header-name { font-size: 14px; font-weight: 600; }
+.chat-header-status {
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  color: var(--success); display: flex; align-items: center; gap: 4px;
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+.status-dot.off { background: var(--error); }
+.chat-header-status.off { color: var(--error); }
+.clear-btn {
+  margin-left: auto; font-size: 11px; color: var(--text-muted);
+  background: none; border: 1px solid var(--border);
+  padding: 5px 10px; border-radius: 6px; cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.15s;
+}
+.clear-btn:hover { color: var(--text); border-color: var(--text-muted); }
+
+/* MESSAGES */
+.messages {
+  flex: 1; overflow-y: auto; padding: 24px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.messages::-webkit-scrollbar { width: 4px; }
+.messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.msg { max-width: 85%; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform: translateY(0); } }
+
+.msg.user { align-self: flex-end; }
+.msg.assistant { align-self: flex-start; }
+
+.msg-bubble {
+  padding: 12px 16px; border-radius: 12px;
+  font-size: 13.5px; line-height: 1.65;
+  word-wrap: break-word; overflow-wrap: anywhere;
+}
+.msg.user .msg-bubble {
+  background: var(--accent);
+  color: white; border-bottom-right-radius: 4px;
+  white-space: pre-wrap;
+}
+.msg.assistant .msg-bubble {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+}
+.msg-label {
+  font-size: 10px; font-family: 'JetBrains Mono', monospace;
+  color: var(--text-muted); margin-bottom: 4px;
+  padding: 0 4px;
+}
+.msg.user .msg-label { text-align: right; }
+
+/* WELCOME */
+.welcome {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 40px;
+}
+.welcome-icon { font-size: 48px; margin-bottom: 16px; }
+.welcome-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+.welcome-sub { font-size: 13px; color: var(--text-dim); max-width: 440px; line-height: 1.6; }
+.welcome-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; justify-content: center; max-width: 640px; }
+.prompt-chip {
+  font-size: 12px; padding: 8px 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; cursor: pointer; transition: all 0.15s;
+  color: var(--text-dim); max-width: 280px; text-align: left;
+  line-height: 1.4;
+}
+.prompt-chip:hover { border-color: var(--accent); color: var(--text); background: var(--accent-glow); }
+
+/* INPUT */
+.input-area {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.input-row { display: flex; gap: 10px; align-items: flex-end; }
+.input-box {
+  flex: 1; background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 16px;
+  color: var(--text); font-family: 'Space Grotesk', sans-serif;
+  font-size: 13.5px; resize: none;
+  min-height: 44px; max-height: 160px;
+  line-height: 1.5; transition: border-color 0.15s;
+}
+.input-box:focus { outline: none; border-color: var(--accent); }
+.input-box::placeholder { color: var(--text-muted); }
+.send-btn {
+  width: 44px; height: 44px; min-width: 44px;
+  border-radius: 10px; border: none;
+  background: var(--accent); color: white;
+  cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  font-size: 18px; transition: all 0.15s;
+}
+.send-btn:hover { background: #3b82f6; }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.input-hint { font-size: 10px; color: var(--text-muted); margin-top: 6px; font-family: 'JetBrains Mono', monospace; }
+
+/* LOADING */
+.typing-indicator {
+  display: flex; gap: 4px; padding: 12px 16px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 12px; border-bottom-left-radius: 4px;
+  width: fit-content;
+}
+.typing-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-muted);
+  animation: typingBounce 1.2s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typingBounce {
+  0%,60%,100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* MODAL (réglages clé API) */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(5,8,16,0.75); backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px; width: 100%; max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.modal-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.modal-sub { font-size: 12.5px; color: var(--text-dim); line-height: 1.6; margin-bottom: 20px; }
+.modal-field { margin-bottom: 16px; }
+.modal-field label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600; }
+.modal-field input, .modal-field select {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px; color: var(--text);
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px;
+}
+.modal-field input:focus, .modal-field select:focus { outline: none; border-color: var(--accent); }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+.btn {
+  font-size: 13px; padding: 9px 16px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+  transition: all 0.15s; font-family: 'Space Grotesk', sans-serif;
+}
+.btn:hover { border-color: var(--text-muted); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+.btn-primary:hover { background: #3b82f6; }
+.modal-note {
+  font-size: 11px; color: var(--warning); line-height: 1.5; margin-top: 14px;
+  background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 8px; padding: 10px 12px;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .sidebar.mobile-open {
+    display: block; position: fixed; z-index: 100;
+    top: 0; left: 0; width: 100%; height: 100%;
+    min-width: unset;
+  }
+  .mobile-toggle { display: flex !important; }
+  .header-badge { display: none; }
+}
+.mobile-toggle {
+  display: none;
+  width: 36px; height: 36px; border-radius: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px;
+}
+
+/* Mise en forme markdown légère dans les messages */
+.msg-bubble strong { font-weight: 600; color: var(--accent-light); }
+.msg-bubble code {
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(37,99,235,0.1); padding: 1px 5px;
+  border-radius: 4px; font-size: 12px;
+}
+.msg-bubble h3 { font-size: 14px; font-weight: 600; margin: 12px 0 6px; color: var(--text); }
+.msg-bubble ul { margin: 6px 0 6px 18px; }
+.msg-bubble li { margin: 2px 0; }
+.msg-bubble .verdict-go { color: var(--success); font-weight: 600; }
+.msg-bubble .verdict-revise { color: var(--warning); font-weight: 600; }
+.msg-bubble .verdict-reject { color: var(--error); font-weight: 600; }
+.cursor-blink::after { content:"▋"; color: var(--accent-light); animation: blink 1s step-start infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <button class="mobile-toggle" onclick="toggleSidebar()">☰</button>
+    <div class="logo-mark">H</div>
+    <div>
+      <div class="header-title">Agent Claude Ads</div>
+      <div class="header-sub">HARUCON VENTURES</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="header-badge">1 AGENT · 10 EXPERTISES</div>
+    <button class="icon-btn" id="settingsBtn" title="Réglages (clé API, modèle)" onclick="openSettings()">⚙</button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <div class="chat-header" id="chatHeader"></div>
+    <div class="messages" id="messages"></div>
+    <div class="input-area" id="inputArea">
+      <div class="input-row">
+        <textarea class="input-box" id="userInput" rows="1" placeholder="Décris ta situation ou pose ta question (budget, CA, ROAS, objectif...)" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="send()">→</button>
+      </div>
+      <div class="input-hint">Entrée pour envoyer · Maj+Entrée pour un retour à la ligne</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RÉGLAGES -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-title">Réglages</div>
+    <div class="modal-sub">La clé API et le modèle sont stockés dans ce navigateur (localStorage). Rien n'est envoyé ailleurs que vers l'API Anthropic.</div>
+    <div class="modal-field">
+      <label for="apiKeyInput">Clé API Anthropic</label>
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+    </div>
+    <div class="modal-field">
+      <label for="modelSelect">Modèle</label>
+      <select id="modelSelect">
+        <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (recommandé)</option>
+        <option value="claude-opus-4-8">Claude Opus 4.8 (plus puissant)</option>
+        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (plus rapide)</option>
+      </select>
+    </div>
+    <div class="modal-note">
+      Une clé API côté navigateur est visible par toute personne ayant accès à ce poste. Pour un usage partagé ou en production, fais passer l'appel par un backend (proxy PHP sur MAMP par exemple) qui détient la clé. Cette version est pensée pour un usage local et personnel.
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeSettings()">Annuler</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ═══════════════════════════════════════════
+// CONFIG / PERSISTANCE
+// ═══════════════════════════════════════════
+const LS_KEY_API = "harucon_ads_api_key";
+const LS_KEY_MODEL = "harucon_ads_model";
+const LS_KEY_CONV = "harucon_ads_conversation";
+const DEFAULT_MODEL = "claude-sonnet-4-6";
+const MAX_TOKENS = 4096;
+const MAX_HISTORY = 24; // nombre de messages renvoyés à l'API pour borner le coût
+
+function getApiKey()  { return localStorage.getItem(LS_KEY_API) || ""; }
+function getModel()   { return localStorage.getItem(LS_KEY_MODEL) || DEFAULT_MODEL; }
+
+// ═══════════════════════════════════════════
+// SYSTEM PROMPT UNIFIÉ (les 10 expertises en 1 agent)
+// ═══════════════════════════════════════════
+const SYSTEM_PROMPT = `Tu es l'Agent Claude Ads de Harucon Ventures : un consultant SEA / Google Ads senior unique qui réunit en une seule personne 10 domaines d'expertise. Ton expérience est construite sur la gestion de plus de 150 M€ de budget publicitaire annuel sur 74 marques e-commerce.
+
+# Fonctionnement
+À chaque message, identifie le ou les domaines concernés parmi tes 10 expertises ci-dessous, puis réponds dans le rôle adapté (tu peux en combiner plusieurs). Si la demande est trop vague ou s'il manque des données chiffrées indispensables, pose d'abord les 2 ou 3 questions de cadrage qui débloquent une réponse vraiment utile, puis enchaîne.
+
+# Tes 10 domaines d'expertise
+
+## 1. Stratégie et roadmap Ads
+Construis des stratégies Google Ads complètes et des roadmaps de scaling adaptées au stade, au budget et aux objectifs de la marque. Structure de campagne (Search, Shopping, PMax, YouTube, Display), allocation de budget par type de campagne et étape du funnel, timelines de scaling 30/60/90 jours avec jalons précis, priorisation des canaux selon la maturité, stratégie d'audience, choix et transitions de stratégie d'enchères, recommandations de formats créatifs, cibles de KPI par campagne et étape du funnel.
+Frameworks : Google Scaling Timeline (approche par phases sur 12 mois), Precision Scaling Checklist, D2C Maturity Assessment, AI Max Scaling Framework pour PMax.
+À demander : dépense mensuelle actuelle, CA, nombre de références (SKU), panier moyen (AOV), types de campagnes en cours, objectif principal (acquisition nouveaux clients vs rentabilité vs scaling).
+
+## 2. Audit de structure de compte
+Trouve les fuites de profit, les problèmes de structure et les opportunités manquées. Diagnostique : structure de campagne (trop ou trop peu de campagnes, mauvaise segmentation), répartition de budget (déséquilibre marque vs hors-marque, PMax gaspilleur), stratégie d'enchères inadaptée au stade, recouvrement d'audiences et cannibalisation, lacunes de tracking et d'attribution, qualité du flux Shopping, mots-clés négatifs manquants, gaspillage sur les termes de recherche, problèmes d'asset groups PMax.
+Frameworks : Google Ads Audit Kit (diagnostic 30 min), 7 Deadly Scaling Mistakes, Hidden Profit Leaks Auditor, Tracking Survival Kit.
+Calculs systématiques quand on te donne des chiffres : MER (CA total / dépense pub totale), CM2 approximative, ratio d'efficacité. Signale quand le ROAS paraît sain mais que le MER raconte une autre histoire.
+Format de sortie : résumé exécutif des problèmes critiques, puis actions priorisées par impact estimé sur le profit. Chaque action reçoit un niveau de difficulté (quick win / effort moyen / gros chantier) et un impact estimé. Sois brutalement honnête : si le compte est un bazar, dis-le.
+
+## 3. Recherche de mots-clés
+Trouve des mots-clés qui convertissent des acheteurs, pas des curieux. Chaque mot-clé recommandé est étiqueté par niveau d'intention et type de correspondance recommandé. Livre : listes segmentées par intention (transactionnel, investigation commerciale, informationnel), type de correspondance par mot-clé (exact, expression, large), listes de mots-clés négatifs (exclusions prêtes à l'emploi dès le jour 1), regroupement par catégorie produit / étape du funnel / intention, estimations de volume et indicateurs de concurrence quand c'est possible, longue traîne, opportunités saisonnières, gaps concurrents.
+Paliers d'intention : Tier 1 (achat immédiat : "acheter [produit]", "[marque] boutique", "meilleur [produit] pour [usage]"), Tier 2 (comparaison : "[produit] vs [produit]", "meilleur [catégorie] 2025", "avis [produit]"), Tier 3 (recherche : "qu'est-ce que [produit]", "comment [usage]", "guide [catégorie]").
+Organise toujours en cartographie structurée par campagne / groupe d'annonces, pas en simple liste. Marque les requêtes informationnelles "contenu seulement, pas pour le payant". Inclus toujours des négatifs.
+
+## 4. Génération d'annonces
+Rédige des annonces Google qui convertissent, via des frameworks de conversion éprouvés, jamais du blabla générique. Produis : titres RSA (15 variations avec recommandations de pinning), descriptions RSA (4 variations, propositions de valeur et CTA clairs), titres / descriptions / titres longs PMax, optimisation de titres Shopping, sitelinks, accroches (callouts), extraits structurés, scripts YouTube (hook 5 premières secondes + corps + CTA), annonces Display.
+Frameworks : PAS (Problème, Agitation, Solution), BAB (Before, After, Bridge), preuve sociale (chiffres, avis, récompenses), Future State, Contrarian / Myth Breaker. Déclencheurs de hook : curiosité, contrarian, émotion, logique, résultat, preuve sociale, urgence.
+Règles de format (s'appliquent au texte FINAL en français) : chaque titre tient en 30 caractères maximum, chaque description en 90 caractères maximum, au moins 2 titres contiennent le mot-clé principal, au moins 1 titre contient un chiffre ou une affirmation précise, au moins 2 descriptions contiennent un CTA clair. Pas de "Achetez maintenant" générique sans contexte. Quand tu fournis des titres, indique le compte de caractères entre parenthèses.
+
+## 5. Optimisation du flux Shopping (Merchant Center)
+Transforme des flux produits brouillons en machines à conversion. La plupart des marques laissent 30 à 50 % de performance Shopping sur la table à cause de l'hygiène du flux. Optimise : titres produits (riches en mots-clés, alignés sur les requêtes, formules par catégorie), descriptions (orientées bénéfices, complètes), product type et catégorie Google, custom labels de segmentation, exigences d'images, complétude GTIN / MPN / marque, configuration livraison et taxes, prix soldés et promotions, feeds supplémentaires.
+Formules de titre par catégorie : Mode = Marque + Genre + Type + Caractéristique + Couleur + Taille. Électronique = Marque + Gamme + Modèle + Spec clé + Couleur. Beauté = Marque + Type + Ingrédient clé + Format. Alimentaire / compléments = Marque + Type + Saveur/Variante + Format + Quantité.
+Segmentation custom labels : 0 = palier de marge, 1 = palier de performance (hero/standard/longue traîne), 2 = cycle de vie (nouveau/cœur/déstockage), 3 = tranche de prix, 4 = saisonnalité.
+Quand on te colle des titres, réécris-les avec la formule exacte de la catégorie.
+
+## 6. Veille concurrentielle Ads
+Reverse-engineering de ce que font les concurrents sur Google Ads, identification de leurs faiblesses et contre-stratégies. Analyse : patterns de copy (hooks, offres, CTA, USP), niveaux de dépense et agressivité d'enchères estimés, stratégies de landing page, recouvrement et gaps de mots-clés, qualité et prix du flux Shopping, patterns saisonniers, nouveaux entrants.
+Méthodes : Centre de transparence publicitaire Google, lecture des Auction Insights, comparaison de prix Shopping, identification des recouvrements de termes, teardown de landing page.
+Contre-stratégies : Outposition (angles non couverts), Outbid sélectif (mots-clés où ils sont peu engagés), Out-convert (meilleure landing, offre plus forte, chargement plus rapide), Out-segment (micro-audiences traitées en large), Out-create (plus de variations, plus vite).
+Quand tu analyses une annonce concurrente, décompose : le hook (ce qui stoppe le clic), le mécanisme (ce qui les rend différents selon eux), l'offre (ce que reçoit l'acheteur), la preuve. Termine toujours par "voici comment les battre" avec des actions tactiques précises.
+
+## 7. Analyse de landing page
+Assure-toi que le clic ne meurt pas sur la landing. Analyse : message match (la page tient-elle la promesse de l'annonce ?), efficacité above-the-fold (titre, visuel hero, visibilité du CTA), signaux de confiance (avis, badges, garanties), vitesse et Core Web Vitals (impact Quality Score), expérience mobile (60 à 80 % du trafic e-commerce), clarté du CTA et points de friction, choix page produit vs collection vs landing dédiée, présentation de l'offre, traitement des objections, friction du checkout.
+Hiérarchie de conversion : 1) titre aligné sur l'intention de recherche (pas un slogan de marque), 2) produit/offre visible sans scroller, 3) prix et CTA above the fold, 4) preuve sociale dès le premier scroll, 5) bénéfices avant caractéristiques, 6) traitement des objections avant le 2e CTA, 7) urgence/rareté si réelle.
+Métriques à diagnostiquer : taux de rebond par source (Google Ads doit être sous 40 %), taux d'ajout au panier (référence 8 à 12 %), abandon de panier, temps sur page vs conversion, profondeur de scroll.
+Sois précis. Ne dis pas "améliore ton CTA". Dis exactement quoi déplacer, quoi réécrire, quoi ajouter et où. 80 % des problèmes de conversion se jouent above the fold.
+
+## 8. Conseiller stratégie d'enchères
+Règle des enchères qui maximisent le profit, pas un ROAS de vanité. Conseille : choix de stratégie par type et maturité de campagne, calcul du tROAS depuis les COGS et la marge réels, calcul du tCPA, plans de transition (manuel vers auto, maximiser vers cible), stratégies de portefeuille, ajustements saisonniers, modificateurs par appareil/lieu/audience, interaction budget/enchère.
+Arbre de décision : campagne neuve (moins de 30 conversions/mois) = Maximiser les clics ou CPC manuel. Campagne en croissance (30 à 50) = Maximiser les conversions. Campagne mature (50+) = tROAS ou tCPA. Gros volume (100+) = stratégies de portefeuille.
+Formule ROAS : ROAS d'équilibre = 1 / marge brute (ex : marge 60 % -> 1/0,6 = 167 % d'équilibre). Le tROAS cible doit être 1,5 à 2 fois le seuil d'équilibre pour scaler en rentabilité.
+MER vs ROAS : le ROAS est une métrique de vanité par campagne, le MER (CA total / dépense totale) est le vrai indicateur de rentabilité. MER sain minimum : environ 4x pour la plupart des marques. ROAS beau mais MER mauvais = le search de marque gonfle les chiffres.
+Demande toujours marge brute, COGS et AOV avant de recommander une cible de ROAS. Raisonne comme un directeur financier qui connaît Google Ads.
+
+## 9. Constructeur Performance Max
+Structure les campagnes PMax pour que l'automatisation de Google travaille POUR la marque. Construis : structure et segmentation des asset groups, briefs de création d'assets, signaux d'audience (segments personnalisés, données first-party, démographie), search themes, exclusions de marque, expansion d'URL, objectifs de conversion, allocation de budget PMax vs autres campagnes.
+Framework : segmente par catégorie produit ou palier de marge, pas par produit unitaire. 3 à 7 asset groups par campagne (zone idéale). Chaque asset group a son propre signal d'audience. Ne jamais lancer PMax sans Search et Shopping en parallèle.
+Problèmes fréquents et correctifs : dépense surtout sur Display/Gmail (renforcer signaux d'audience + search themes), cannibalisation du search de marque (exclusions de marque + bonne structure Search), conversions de faible qualité (réglages d'objectifs + affinage des signaux), tout le budget sur un seul asset group (scinder en campagnes séparées), pas de visibilité sur les termes (scripts d'extraction).
+Assets par groupe : 5 à 15 titres, 1 à 5 titres longs, 2 à 5 descriptions, 5 à 20 images (paysage, carré, portrait), 1 à 5 vidéos (sinon Google en auto-génère de mauvaises), 1 à 5 logos. PMax n'est pas "set and forget" : précise les leviers à actionner chaque semaine.
+
+## 10. Système de scoring QA
+Tu es la dernière barrière qualité avant la mise en ligne. Note chaque livrable avec un verdict clair : GO (VALIDÉ), REVISE (À RÉVISER) ou REJECT (REJETÉ). Aucune ambiguïté, jamais de "ça dépend". Tu QA : copy d'annonces, structures de campagne, configs d'enchères, titres/descriptions de flux, alignement landing/annonce, ciblages, asset groups PMax, tracking, plans de budget.
+Copy : GO = mot-clé présent, bénéfice clair, CTA précis, dans les limites de caractères, angle unique. REVISE = mot-clé manquant, CTA générique, hook faible mais corrigeable. REJECT = hors limite, pas de proposition de valeur, allégation trompeuse, doublon.
+Structure : GO = segmentation propre, budget bien réparti, bonne stratégie pour le stade, tracking vérifié. REVISE = problèmes mineurs, sous-optimal mais fonctionnel. REJECT = problèmes structurels de fond, risque de cannibalisation, lacunes de tracking.
+Flux Shopping : GO = titre suivant la formule catégorie, attributs requis présents, custom labels posés, images conformes. REVISE = titre à optimiser, attributs optionnels manquants. REJECT = attributs requis manquants, titre keyword-stuffé ou trompeur, mauvaise catégorie.
+Format de sortie : 1) Verdict global GO / REVISE / REJECT (et entre parenthèses VALIDÉ / À RÉVISER / REJETÉ), 2) Score X/10, 3) Ce qui marche, 4) Ce qui doit être corrigé (problème précis + correctif précis), 5) Ce qui manque, 6) Priorité (le correctif au plus fort impact). Un "GO" faible qui mène à du budget gaspillé est pire qu'un "REJECT" qui économise de l'argent.
+
+# Règles transversales (toujours)
+- Réponds toujours en français, quelle que soit la langue de la question. Garde en anglais les termes techniques d'usage (PMax, ROAS, tROAS, tCPA, Shopping, Search, asset group, custom labels, AOV, COGS, MER, RSA, etc.).
+- N'utilise jamais de tirets cadratins (em dashes). Préfère des points, des virgules ou des parenthèses.
+- Sois direct, précis et tactique. Zéro blabla de consultant. Toujours des chiffres et du concret. Raisonne comme un performance marketer qui gère des centaines de millions, pas comme quelqu'un qui récite des frameworks.
+- Structure tes réponses avec des titres courts et des listes quand c'est utile. Utilise **gras** pour les points clés.`;
+
+// ═══════════════════════════════════════════
+// DOMAINES (lanceur / sidebar) — un seul agent, 10 portes d'entrée
+// ═══════════════════════════════════════════
+const domains = [
+  { id:"strategy",   name:"Stratégie & roadmap",        icon:"🎯", color:"#2563eb", desc:"Stratégie Google Ads complète et roadmap de scaling",
+    prompts:["Construis une roadmap de scaling Google Ads sur 90 jours pour une marque DTC de soins de la peau à 2 M€/an","Quelle structure de campagne pour le lancement d'un nouveau produit ?","Je dépense 30 000 €/mois sur Google. Comment aller plus loin ?"] },
+  { id:"audit",      name:"Audit de compte",            icon:"🔍", color:"#f97316", desc:"Trouver les fuites de profit du compte",
+    prompts:["Audite mon compte : 50 000 € de dépense, 180 000 € de CA, ROAS de 3,6 le mois dernier","Mes campagnes PMax cannibalisent mon search de marque. Que faire ?","J'ai 47 groupes d'annonces sur 12 campagnes. Est-ce trop fragmenté ?"] },
+  { id:"keywords",   name:"Recherche de mots-clés",     icon:"🔑", color:"#10b981", desc:"Mots-clés segmentés par intention d'achat",
+    prompts:["Trouve des mots-clés à forte intention pour une marque premium de nourriture pour chiens en Allemagne","Cartographie de mots-clés pour une marque DTC de compléments avec 30 références","Quels mots-clés négatifs pour un site de montres de luxe ?"] },
+  { id:"adcopy",     name:"Génération d'annonces",      icon:"✍️", color:"#8b5cf6", desc:"Des annonces qui convertissent vraiment",
+    prompts:["Rédige des annonces Search pour une protéine en poudre premium ciblant les pratiquants de salle au Royaume-Uni","Génère 10 titres RSA pour une marque DTC de matelas","Rédige les assets PMax pour une marque de mode durable lançant en Allemagne"] },
+  { id:"shopping",   name:"Flux Shopping",              icon:"🛒", color:"#ec4899", desc:"Optimiser des centaines de fiches à grande échelle",
+    prompts:["Optimise ces titres produits pour Google Shopping : [colle tes titres]","Quels attributs me manquent probablement dans mon flux Merchant Center ?","Comment structurer mon flux pour une marque de mode à 500 références ?"] },
+  { id:"competitor", name:"Veille concurrentielle",     icon:"🕵️", color:"#f59e0b", desc:"Voir ce que diffusent vos concurrents",
+    prompts:["Comment espionner la stratégie Google Ads de mon concurrent ?","Un concurrent me surenchérit sur mes termes de marque. Quel plan d'action ?","Analyse la stratégie de ce concurrent : [colle ses annonces ou son URL]"] },
+  { id:"landing",    name:"Analyse de landing page",    icon:"📄", color:"#06b6d4", desc:"Conversion de vos pages de destination",
+    prompts:["Que doit contenir une landing page e-commerce à fort taux de conversion ?","Audite la structure de cette landing page pour une marque DTC de compléments","Ma landing génère des clics mais aucune conversion. Qu'est-ce qui cloche ?"] },
+  { id:"bidding",    name:"Stratégie d'enchères",       icon:"📊", color:"#14b8a6", desc:"Recommandations d'enchères basées sur vos marges",
+    prompts:["tROAS ou Maximiser les conversions pour une nouvelle campagne Shopping ?","Mon tROAS est à 400 % mais je dépense à peine. Pourquoi ?","Comment passer du CPC manuel aux enchères auto sans perdre en performance ?"] },
+  { id:"pmax",       name:"Constructeur PMax",          icon:"⚡", color:"#a855f7", desc:"Des asset groups PMax construits correctement",
+    prompts:["Construis une structure PMax pour une marque DTC de café avec 20 références","Combien d'asset groups et comment les segmenter ?","Ma campagne PMax dépense tout sur le Display. Comment corriger ?"] },
+  { id:"qa",         name:"Scoring QA",                 icon:"✅", color:"#22c55e", desc:"Validé, à réviser ou rejeté. Sans hésitation.",
+    prompts:["Évalue ces titres d'annonce : [colle les titres]","Contrôle QA de cette structure de campagne avant lancement","Vérifie mes titres de flux Shopping et signale les problèmes"] }
+];
+
+// ═══════════════════════════════════════════
+// ÉTAT
+// ═══════════════════════════════════════════
+let conversation = [];      // [{role, content}]
+let activeDomain = null;     // domaine sélectionné pour le lanceur (pas d'incidence sur l'agent)
+let busy = false;
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+function init() {
+  buildSidebar();
+  buildChatHeader();
+  loadConversation();
+  if (conversation.length === 0) renderWelcome();
+  else renderMessages();
+  if (!getApiKey()) openSettings();
+}
+
+function buildSidebar() {
+  const sb = document.getElementById("sidebar");
+  sb.innerHTML = `<div class="section-label">Domaines (un seul agent)</div>`;
+  domains.forEach(d => {
+    const card = document.createElement("div");
+    card.className = "agent-card";
+    card.id = "card-" + d.id;
+    card.onclick = () => selectDomain(d.id);
+    const icon = document.createElement("div");
+    icon.className = "agent-icon";
+    icon.style.background = d.color + "15";
+    icon.style.color = d.color;
+    icon.textContent = d.icon;
+    const body = document.createElement("div");
+    const name = document.createElement("div");
+    name.className = "agent-name"; name.textContent = d.name;
+    const desc = document.createElement("div");
+    desc.className = "agent-desc"; desc.textContent = d.desc;
+    body.appendChild(name); body.appendChild(desc);
+    card.appendChild(icon); card.appendChild(body);
+    sb.appendChild(card);
+  });
+}
+
+function buildChatHeader() {
+  const h = document.getElementById("chatHeader");
+  const hasKey = !!getApiKey();
+  h.innerHTML = `
+    <div class="chat-header-icon">⚡</div>
+    <div>
+      <div class="chat-header-name">Agent Claude Ads</div>
+      <div class="chat-header-status ${hasKey ? "" : "off"}">
+        <span class="status-dot ${hasKey ? "" : "off"}"></span> ${hasKey ? "Prêt · " + getModel() : "Clé API manquante"}
+      </div>
+    </div>
+    <button class="clear-btn" onclick="clearChat()">Nouvelle conversation</button>`;
+}
+
+// ═══════════════════════════════════════════
+// LANCEUR (domaines)
+// ═══════════════════════════════════════════
+function selectDomain(id) {
+  activeDomain = domains.find(d => d.id === id);
+  document.querySelectorAll(".agent-card").forEach(c => c.classList.remove("active"));
+  document.getElementById("card-" + id).classList.add("active");
+  if (conversation.length === 0) renderWelcome();
+  document.getElementById("sidebar").classList.remove("mobile-open");
+  document.getElementById("userInput").focus();
+}
+
+function renderWelcome() {
+  const m = document.getElementById("messages");
+  if (activeDomain) {
+    const chips = activeDomain.prompts.map((p,i) =>
+      `<div class="prompt-chip" data-domain="${activeDomain.id}" data-idx="${i}">${escapeHtml(p)}</div>`).join("");
+    m.innerHTML = `
+      <div class="welcome">
+        <div class="welcome-icon">${activeDomain.icon}</div>
+        <div class="welcome-title">${escapeHtml(activeDomain.name)}</div>
+        <div class="welcome-sub">${escapeHtml(activeDomain.desc)}. Un seul agent couvre ce domaine et les 9 autres : tu peux passer de l'un à l'autre dans la même conversation.</div>
+        <div class="welcome-prompts">${chips}</div>
+      </div>`;
+  } else {
+    const allChips = domains.map(d =>
+      `<div class="prompt-chip" data-domain="${d.id}" data-idx="0">${d.icon} ${escapeHtml(d.prompts[0])}</div>`).join("");
+    m.innerHTML = `
+      <div class="welcome">
+        <div class="welcome-icon">⚡</div>
+        <div class="welcome-title">Agent Claude Ads Harucon</div>
+        <div class="welcome-sub">Un seul agent IA réunissant 10 expertises Google Ads (stratégie, audit, mots-clés, annonces, Shopping, veille, landing, enchères, PMax, QA), construit à partir de plus de 150 M€ de budget géré sur 74 marques. Choisis un domaine à gauche ou pose directement ta question.</div>
+        <div class="welcome-prompts">${allChips}</div>
+      </div>`;
+  }
+  // brancher les chips (pas d'inline onclick : robuste aux apostrophes/guillemets)
+  m.querySelectorAll(".prompt-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const d = domains.find(x => x.id === chip.dataset.domain);
+      const text = d.prompts[parseInt(chip.dataset.idx, 10)];
+      document.getElementById("userInput").value = text;
+      autoResize(document.getElementById("userInput"));
+      send();
+    });
+  });
+}
+
+// ═══════════════════════════════════════════
+// RENDU DES MESSAGES
+// ═══════════════════════════════════════════
+function renderMessages() {
+  const m = document.getElementById("messages");
+  m.innerHTML = conversation.map(msg => `
+    <div class="msg ${msg.role}">
+      <div class="msg-label">${msg.role === "user" ? "Vous" : "Agent Claude Ads"}</div>
+      <div class="msg-bubble">${formatText(msg.content)}</div>
+    </div>`).join("");
+  m.scrollTop = m.scrollHeight;
+}
+
+function escapeHtml(t) {
+  return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function formatText(t) {
+  let s = escapeHtml(t);
+  // titres markdown ### et ##
+  s = s.replace(/^#{2,3}\s+(.+)$/gm, "<h3>$1</h3>");
+  // gras et code
+  s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/`([^`]+?)`/g, "<code>$1</code>");
+  // verdicts QA colorés
+  s = s.replace(/\bGO\b(?=\s*\(|[\s:.])/g, '<span class="verdict-go">GO</span>');
+  s = s.replace(/\bREVISE\b/g, '<span class="verdict-revise">REVISE</span>');
+  s = s.replace(/\bREJECT\b/g, '<span class="verdict-reject">REJECT</span>');
+  // listes à puces
+  s = s.replace(/^(?:[-*]\s+.+(?:\n|$))+/gm, block => {
+    const items = block.trim().split(/\n/).map(l => l.replace(/^[-*]\s+/, "")).map(l => `<li>${l}</li>`).join("");
+    return `<ul>${items}</ul>`;
+  });
+  // retours ligne restants
+  s = s.replace(/\n/g, "<br>");
+  // nettoyage des <br> autour des blocs
+  s = s.replace(/<br>\s*(<h3>|<ul>)/g, "$1").replace(/(<\/h3>|<\/ul>)\s*<br>/g, "$1");
+  return s;
+}
+
+// ═══════════════════════════════════════════
+// SAISIE
+// ═══════════════════════════════════════════
+function handleKey(e) {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+}
+function autoResize(el) {
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 160) + "px";
+}
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("mobile-open");
+}
+function clearChat() {
+  conversation = [];
+  saveConversation();
+  activeDomain = null;
+  document.querySelectorAll(".agent-card").forEach(c => c.classList.remove("active"));
+  renderWelcome();
+}
+
+// ═══════════════════════════════════════════
+// PERSISTANCE CONVERSATION
+// ═══════════════════════════════════════════
+function saveConversation() {
+  try { localStorage.setItem(LS_KEY_CONV, JSON.stringify(conversation)); } catch (e) {}
+}
+function loadConversation() {
+  try {
+    const raw = localStorage.getItem(LS_KEY_CONV);
+    if (raw) conversation = JSON.parse(raw) || [];
+  } catch (e) { conversation = []; }
+}
+
+// ═══════════════════════════════════════════
+// RÉGLAGES (clé API + modèle)
+// ═══════════════════════════════════════════
+function openSettings() {
+  document.getElementById("apiKeyInput").value = getApiKey();
+  document.getElementById("modelSelect").value = getModel();
+  document.getElementById("settingsModal").classList.add("open");
+}
+function closeSettings() {
+  document.getElementById("settingsModal").classList.remove("open");
+}
+function saveSettings() {
+  const key = document.getElementById("apiKeyInput").value.trim();
+  const model = document.getElementById("modelSelect").value;
+  if (key) localStorage.setItem(LS_KEY_API, key);
+  localStorage.setItem(LS_KEY_MODEL, model);
+  closeSettings();
+  buildChatHeader();
+}
+
+// ═══════════════════════════════════════════
+// ENVOI / API (streaming)
+// ═══════════════════════════════════════════
+async function send() {
+  if (busy) return;
+  const input = document.getElementById("userInput");
+  const text = input.value.trim();
+  if (!text) return;
+
+  if (!getApiKey()) { openSettings(); return; }
+
+  busy = true;
+  document.getElementById("sendBtn").disabled = true;
+  input.value = "";
+  input.style.height = "auto";
+
+  conversation.push({ role: "user", content: text });
+  saveConversation();
+  renderMessages();
+
+  // bulle assistant + indicateur de frappe
+  const m = document.getElementById("messages");
+  const wrap = document.createElement("div");
+  wrap.className = "msg assistant";
+  wrap.innerHTML = `<div class="msg-label">Agent Claude Ads</div>
+    <div class="msg-bubble"><div class="typing-indicator"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div></div>`;
+  m.appendChild(wrap);
+  m.scrollTop = m.scrollHeight;
+  const bubble = wrap.querySelector(".msg-bubble");
+
+  // borne l'historique envoyé
+  const apiMessages = conversation.slice(-MAX_HISTORY).map(msg => ({ role: msg.role, content: msg.content }));
+
+  let full = "";
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": getApiKey(),
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: getModel(),
+        max_tokens: MAX_TOKENS,
+        stream: true,
+        system: SYSTEM_PROMPT,
+        messages: apiMessages
+      })
+    });
+
+    if (!res.ok) {
+      let detail = "";
+      try { const err = await res.json(); detail = err.error ? (err.error.message || err.error.type) : ""; } catch (e) {}
+      throw new Error(`HTTP ${res.status}${detail ? " · " + detail : ""}`);
+    }
+
+    // lecture du flux SSE
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    bubble.innerHTML = `<span class="cursor-blink"></span>`;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop(); // garde la dernière ligne partielle
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const payload = trimmed.slice(5).trim();
+        if (payload === "[DONE]") continue;
+        try {
+          const ev = JSON.parse(payload);
+          if (ev.type === "content_block_delta" && ev.delta && ev.delta.type === "text_delta") {
+            full += ev.delta.text;
+            bubble.innerHTML = formatText(full) + `<span class="cursor-blink"></span>`;
+            m.scrollTop = m.scrollHeight;
+          } else if (ev.type === "error") {
+            throw new Error(ev.error ? ev.error.message : "Erreur de streaming");
+          }
+        } catch (e) { /* ligne non-JSON ignorée */ }
+      }
+    }
+
+    if (!full) full = "Aucune réponse reçue.";
+    bubble.innerHTML = formatText(full);
+    conversation.push({ role: "assistant", content: full });
+    saveConversation();
+
+  } catch (err) {
+    if (full) {
+      // réponse partielle : on la garde
+      bubble.innerHTML = formatText(full);
+      conversation.push({ role: "assistant", content: full });
+    } else {
+      bubble.innerHTML = `<span style="color:var(--error)">Erreur : ${escapeHtml(err.message || String(err))}.</span><br>` +
+        `<span style="color:var(--text-dim);font-size:12px">Vérifie ta clé API et ta connexion dans les réglages (⚙).</span>`;
+    }
+    saveConversation();
+  }
+
+  busy = false;
+  document.getElementById("sendBtn").disabled = false;
+  m.scrollTop = m.scrollHeight;
+}
+
+// fermer la modal en cliquant à l'extérieur
+document.getElementById("settingsModal").addEventListener("click", e => {
+  if (e.target.id === "settingsModal") closeSettings();
+});
+
+init();
+</script>
+</body>
+</html>
